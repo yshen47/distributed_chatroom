@@ -1,31 +1,26 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"mp1/server"
 	"mp1/utils"
-	"net"
 	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func main() {
 	if len(os.Args) != 4 {
-		fmt.Print("Usage: go run main.go [server name] [my ip address] [introducer ip address]")
+		fmt.Print("Usage: go run main.go [server name] [port] n. \n")
 		return
 	}
 	//Parse input argument
 	name := os.Args[1]
-	myAddress := os.Args[2]
-	introducerAddress := os.Args[3]
+	portNum := os.Args[2]
+	peopleNum := os.Args[3]
+	myAddress := utils.GetCurrentIP()
 	utils.SetupLog(name)
-	log.Println("Start server with the: ", name, myAddress, introducerAddress )
+	log.Println("Start server with the: ", name, myAddress, portNum, peopleNum )
 
-
+/*
 	s := new(server.SwimServer)
 	s.Constructor(name, introducerAddress,myAddress)
 
@@ -104,5 +99,5 @@ func main() {
 		}
 
 	}
-
+*/
 }
