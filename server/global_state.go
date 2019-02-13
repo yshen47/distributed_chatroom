@@ -15,7 +15,7 @@ type GlobalState struct {
 	@param ipAddress string
 	@param incarnation int
 	@param entryType int
-	Invoke when the server receives response from ping.  Update the membershipList
+	Invoke when the server receives response from ping.  Update the GlobalState
  */
 func (m *GlobalState) UpdateNode(entry Entry) int{
 	if m.inBlacklist(entry) {
@@ -69,7 +69,7 @@ func (m *GlobalState) UpdateNode2(initialTimeStamp int64, ipAddress string, entr
 /*
 	@param ipAddress string
 	@param initialTimeStamp int64
-	Invoke when the server receives response from ping.  Update the membershipList
+	Invoke when the server receives response from ping.  Update the GlobalState
  */
 func (m *GlobalState) AddNewNode(entry Entry) {
 	//fmt.Println("addnewnode", m.List)
@@ -83,7 +83,7 @@ func (m *GlobalState) AddNewNode(entry Entry) {
 /*
 	@param ipAddress string
 	@param initialTimeStamp int64
-	Invoke when the server receives response from ping.  Update the membershipList and the disseminateList
+	Invoke when the server receives response from ping.  Update the GlobalState and the disseminateList
  */
 func (m *GlobalState) RemoveNode(ipAddress string, initialTimeStamp int64) {
 	for ind, elem := range m.List {

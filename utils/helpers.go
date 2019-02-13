@@ -4,10 +4,11 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 func SetupLog(name string) {
-	f, err := os.OpenFile("log.txt", os.O_RDWR | os.O_CREATE, 0666)
+	f, err := os.OpenFile("../../data/logs/log.txt", os.O_RDWR | os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
@@ -35,4 +36,14 @@ func GetCurrentIP() string {
 		}
 	}
 	return ""
+}
+
+
+func Concatenate(str ...string) string {
+	var ipAddress []string
+	for _, s := range str {
+		ipAddress = append(ipAddress, s)
+	}
+
+	return strings.Join(ipAddress, "")
 }
