@@ -1,4 +1,4 @@
-package models
+package server
 
 type Message struct {
 	content 	string
