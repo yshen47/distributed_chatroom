@@ -17,6 +17,7 @@ func main() {
 
 	// accept connection on port
 	conn, _ := ln.Accept()
+	fmt.Println(conn.RemoteAddr())
 
 	// run loop forever (or until ctrl-c)
 	for {
@@ -29,4 +30,5 @@ func main() {
 		// send new string back to client
 		conn.Write([]byte(newmessage + "\n"))
 	}
+
 }

@@ -28,26 +28,37 @@ func main() {
 			return
 		}
 	}
+
 	myAddress := utils.GetCurrentIP(DEBUG, portNum)
 	globalServerIPs := utils.GetServerIPs(portNum, peopleNum, DEBUG)
-	utils.SetupLog(name)
+	//utils.SetupLog(name)
 
 	s := new(server.SwimServer)
-	s.Constructor(name, peopleNum, portNum, globalServerIPs)
+	s.Constructor(name, peopleNum, portNum, myAddress, globalServerIPs)
 
-	log.Println("Start server with the: ", name, myAddress, portNum, peopleNum)
-
-	//Join group except for introducer itself
-	log.Println("Start joining the group",myAddress)
-	s.Join(globalServerIPs)
+	log.Println("Start server with the: ", name, myAddress, peopleNum)
 
 
 	//Start the server
 	ServerConn, err := net.Listen("tcp", utils.Concatenate(":", portNum))
 	utils.CheckError(err)
+	dialChannel := make(chan server.ConnectionPair)
 
-	go s.DialOthers()
-	go s.ListenForDial(ServerConn)
+	go s.DialOthers(dialChannel)
 
-
+	for {
+		conn, err := ServerConn.Accept()
+		if err != nil {
+			continue
+		}
+		clientIP := conn.RemoteAddr().String()
+		if _, ok := s.EstablishedInConns[clientIP]; ok {
+			//
+			fmt.Println("this is wired, shouldn't reach here.")
+		} else {
+			log.Println("Received new Client TCP connection from ", clientIP)
+			s.EstablishedInConns[clientIP] = conn
+			go s.HandleRequest(conn)
+		}
+	}
 }
