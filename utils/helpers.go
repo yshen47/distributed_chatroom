@@ -22,25 +22,6 @@ func SetupLog(name string) {
 	log.Println("Start server...")
 }
 
-
-func GetCurrentIP() string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		os.Stderr.WriteString("Oops: " + err.Error() + "\n")
-		os.Exit(1)
-	}
-
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String()
-			}
-		}
-	}
-	return ""
-}
-
-
 func Concatenate(elem ...interface{}) string {
 	var ipAddress []string
 	for _, e := range elem {
@@ -58,8 +39,8 @@ func Concatenate(elem ...interface{}) string {
 	return strings.Join(ipAddress, "")
 }
 
-func GetGlobalServerIPs(port int, num int, debug bool) [] string {
-	ips := make([]string, 10)
+func GetServerIPs(port int, num int, debug bool) [] string {
+	ips := make([]string, num)
 	if debug {
 		for i := range ips {
 			ips[i] = Concatenate("localhost:", 5800 + i * 100)
@@ -74,5 +55,43 @@ func GetGlobalServerIPs(port int, num int, debug bool) [] string {
 
 		}
 	}
-	return ips[:num]
+	return ips
+}
+
+func GetCurrentIP(debug bool, port int) string {
+	if !debug {
+		addrs, err := net.InterfaceAddrs()
+		if err != nil {
+			os.Stderr.WriteString("Oops: " + err.Error() + "\n")
+			os.Exit(1)
+		}
+
+		for _, a := range addrs {
+			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if ipnet.IP.To4() != nil {
+					return ipnet.IP.String()
+				}
+			}
+		}
+		return ""
+	} else {
+		return Concatenate("localhost:", port)
+	}
+}
+
+//Only for debug mode
+func IsPortValid(port int, num int) bool {
+	for i := 0; i < num; i++ {
+		if port == 5800 + i * 100 {
+			return true
+		}
+	}
+	return false
+}
+
+func CheckError(err error) {
+	if err != nil {
+		log.Println("Fatal error ", err.Error())
+		os.Exit(1)
+	}
 }

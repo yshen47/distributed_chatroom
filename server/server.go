@@ -2,6 +2,9 @@ package server
 
 import (
 	"bufio"
+	"cs425/MP2/server"
+	"encoding/json"
+	"fmt"
 	"log"
 	"mp1/utils"
 	"net"
@@ -21,10 +24,11 @@ type SwimServer struct {
 	MyAddress string
 	portNum int
 	InitialTimeStamp int64
-
+	GlobalServerAddrs [] string
+	EstablishedConns map[string] net.Conn
 }
 
-func (s * SwimServer) Constructor(name string, peopleNum int, portNum int) {
+func (s * SwimServer) Constructor(name string, peopleNum int, portNum int, globalServerAddrs [] string) {
 	currTimeStamp := time.Now().Unix()
 	s.GlobalState = new(GlobalState)
 	s.MyAddress = utils.GetCurrentIP()
@@ -42,6 +46,7 @@ func (s * SwimServer) Constructor(name string, peopleNum int, portNum int) {
 	entry.IpAddress = s.MyAddress
 	s.GlobalState.AddNewNode(entry)
 	s.SetupServerIPs()
+	s.GlobalServerAddrs = globalServerAddrs
 }
 
 func (s *SwimServer) SetupServerIPs() {
@@ -57,6 +62,44 @@ func (s *SwimServer) StartPing(duration time.Duration) {
 	}
 }
 
+func (s *SwimServer) DialOthers(ips [] string)  map[string]net.Conn {
+	m := make(map[string]net.Conn)
+	for _, ip := range ips {
+		conn, err := net.DialTimeout("tcp", ip, 0.2)
+		if err == nil {
+			m[ip] = conn
+		}
+	}
+	return m
+}
+
+func (s *SwimServer) GetDialableIPs() {
+
+}
+
+func (s *SwimServer) ListenForDial(ln net.Listener) {
+	for {
+		for ip := range s.GlobalServerAddrs {
+			if ip
+			conn, _ := ln.Accept()
+			go s.HandleRequest(conn)
+		}
+	}
+}
+
+func (s *SwimServer) HandleRequest(conn net.Conn) {
+	buf := make([]byte, 1024)
+
+	for {
+		n, _ := conn.Read(buf)
+		var resultMap server.Action
+		// parse resultMap to json format
+		err := json.Unmarshal(buf[0:n], &resultMap)
+		if err != nil {
+			fmt.Println("error:", err)
+		}
+	}
+}
 /*
 	This function should ping to num processes. And at the same time, it should disseminate entries stored in the disseminateList
  */
@@ -89,13 +132,11 @@ func (s *SwimServer) Ack(ipAddress string) {
 /*
 	This function invoke when it attempts to connect with the introducer node. If success, it should update its membership list
  */
-func (s *SwimServer) Join() {
+func (s *SwimServer) Join(globalIPs [] string) {
 	log.Println("Sending join request")
-	file, err := os.Open("../../data/ip_addresses.txt")
-	if err != nil {
-		log.Fatal(err)
+	for _, ip := range globalIPs {
+		s.sendMessageWithTCP()
 	}
-	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -160,10 +201,10 @@ func (s *SwimServer) checkGlobalState() {
 	}
 }
 
-func (s *SwimServer) sendMessageWithUDP ( actionType string, ipAddress string) {
+func (s *SwimServer) sendMessageWithTCP ( actionType string, ipAddress string) {
 	arr := strings.Split(ipAddress, ":")
 	myPort, _ := strconv.Atoi(arr[1])
-	Conn, _ := net.DialUDP("udp", nil, &net.UDPAddr{IP:[]byte{127,0,0,1},Port:myPort,Zone:""})
+	Conn, _ := net.DialTCP("tcp", nil, &net.UDPAddr{IP:[]byte{127,0,0,1},Port:myPort,Zone:""})
 	defer Conn.Close()
 	var listToSend []Entry
 	for _, v := range s.GlobalState.List {
