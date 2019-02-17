@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"mp1/server"
@@ -8,9 +9,19 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"time"
 )
 
+var DEBUG = true
+
+
 func main() {
+	var globalServerIPs [8] string
+	if DEBUG {
+		globalServerIPs =
+	}
+	globalServerIPs[0] = "local"
+
 	if len(os.Args) != 4 {
 		fmt.Print("Usage: go run main.go [server name] [port] n. \n")
 		return
@@ -42,7 +53,7 @@ func main() {
 	}
 
 	defer ServerConn.Close()
-/*
+
 	go s.StartPing(1 * time.Second)
 
 	//wait for incoming response
@@ -98,5 +109,5 @@ func main() {
 		}
 
 	}
-*/
+
 }

@@ -21,6 +21,7 @@ type SwimServer struct {
 	MyAddress string
 	portNum int
 	InitialTimeStamp int64
+
 }
 
 func (s * SwimServer) Constructor(name string, peopleNum int, portNum int) {
@@ -40,6 +41,11 @@ func (s * SwimServer) Constructor(name string, peopleNum int, portNum int) {
 	entry.InitialTimeStamp = currTimeStamp
 	entry.IpAddress = s.MyAddress
 	s.GlobalState.AddNewNode(entry)
+	s.SetupServerIPs()
+}
+
+func (s *SwimServer) SetupServerIPs() {
+
 }
 
 func (s *SwimServer) StartPing(duration time.Duration) {
