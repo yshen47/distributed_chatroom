@@ -52,6 +52,8 @@ func (s *SwimServer) DialOthers(c chan ConnectionPair)  map[string]net.Conn {
 				log.Println("Established new connection ", conn.RemoteAddr().String(), " <=> ", s.MyAddress)
 				s.EstablishedConns[ip] = conn
 				s.Mutex.Unlock()
+				action := Action{ActionType:EncodeActionType("Introduce"), SenderIP: s.MyAddress}
+				conn.Write(action.ToBytes())
 			}
 			time.Sleep(1*time.Second)
 		}
@@ -84,7 +86,19 @@ func (s *SwimServer) HandleConnection(conn net.Conn) {
 		if err != nil {
 			fmt.Println("error:", err)
 		}
-		if resultMap.ActionType == EncodeActionType("Message") {
+		if resultMap.ActionType == EncodeActionType("Introduce") {
+			s.Mutex.Lock()
+			_, ok := s.EstablishedConns[resultMap.SenderIP];
+			s.Mutex.Unlock()
+			if !ok {
+				s.Mutex.Lock()
+				s.EstablishedConns[resultMap.SenderIP] = conn
+				log.Println("Established new connection ", resultMap.SenderIP, " <=> ", s.MyAddress)
+				s.Mutex.Unlock()
+			} else {
+				return
+			}
+		} else if resultMap.ActionType == EncodeActionType("Message") {
 			//TODO: Print out message
 
 		} else if resultMap.ActionType == EncodeActionType("Leave") {

@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"strings"
 )
 
 var DEBUG = true
@@ -52,25 +51,6 @@ func main() {
 		if err != nil {
 			continue
 		}
-		clientIP := conn.RemoteAddr().String()
-		temp := strings.Split(clientIP, ":")
-
-		clientPortString := temp[len(temp)-1]
-
-		clientPort, _ := strconv.Atoi(clientPortString)
-		fmt.Println("clientPort", clientPort)
-		fmt.Println("portNum", portNum)
-		s.Mutex.Lock()
-		_, ok := s.EstablishedConns[clientIP]
-		s.Mutex.Unlock()
-		fmt.Println("ok", ok)
-		if !ok && clientPort != portNum {
-			log.Println("Received new Client TCP connection from ", clientIP, " <=> ", myAddress)
-			s.Mutex.Lock()
-			s.EstablishedConns[clientIP] = conn
-			s.Mutex.Unlock()
-			go s.HandleConnection(conn)
-		}
-
+		go s.HandleConnection(conn)
 	}
 }

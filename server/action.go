@@ -20,6 +20,8 @@ func EncodeActionType(actionType string) int {
 		return 0
 	} else if actionType == "Leave" {
 		return 1
+	} else if actionType == "Introduce" {
+		return 2
 	}
 	return -1
 }
