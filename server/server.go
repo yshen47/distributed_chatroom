@@ -34,6 +34,14 @@ func (s * SwimServer) Constructor(name string, peopleNum int, portNum int, myAdd
 func (s *SwimServer) DialOthers() {
 	isFirst := true
 	for {
+		if len(s.EstablishedConns) == s.PeopleNum - 1 {
+			if isFirst {
+				isFirst = false
+				//TODO: READY
+				log.Println("READY!")
+			}
+			continue
+		}
 		for _, ip := range s.GlobalServerAddrs {
 			if ip == s.MyAddress {
 				time.Sleep(1*time.Second)
@@ -49,36 +57,28 @@ func (s *SwimServer) DialOthers() {
 			//fmt.Println("trying to dial ", ip)
 			conn, err := net.DialTimeout("tcp", ip, 1*time.Second)
 			if err == nil {
-				go s.HandleConnection(conn, "", ip)
-				action := Action{ActionType:EncodeActionType("Introduce"), SenderIP: s.MyAddress, SenderName:s.name}
-				conn.Write(action.ToBytes())
+				go s.HandleConnection(conn)
 			}
-			time.Sleep(1*time.Second)
 		}
-		if len(s.EstablishedConns) == s.PeopleNum - 1 && isFirst {
-			isFirst = false
-			//TODO: READY
-			log.Println("READY!")
-		}
+
 	}
 }
 
 
-func (s *SwimServer) HandleConnection(conn net.Conn, remoteName string, remoteAddr string) {
-	if remoteAddr != "" {
-		s.Mutex.Lock()
-		s.EstablishedConns[remoteAddr] = conn
-		log.Println("Established new connection ", remoteAddr, " <=> ", s.MyAddress)
-		s.Mutex.Unlock()
-	}
+func (s *SwimServer) HandleConnection(conn net.Conn) {
+	var remoteName string
+	var remoteAddr string
+	action := Action{ActionType:EncodeActionType("Introduce"), SenderIP: s.MyAddress, SenderName:s.name}
+	conn.Write(action.ToBytes())
+
 	buf := make([]byte, 1024)
 	for {
-		log.Println("hello!")
 		n, err := conn.Read(buf)
 		if err == io.EOF {
 			//Failure detected
 			s.Mutex.Lock()
-			log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
+			//log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
+			log.Println(remoteName, " has left")
 			delete(s.EstablishedConns, remoteAddr)
 			s.Mutex.Unlock()
 			//TODO:send someone left message
@@ -101,7 +101,7 @@ func (s *SwimServer) HandleConnection(conn net.Conn, remoteName string, remoteAd
 				s.EstablishedConns[resultMap.SenderIP] = conn
 				remoteAddr = resultMap.SenderIP
 				remoteName = resultMap.SenderName
-				log.Println("Established new connection ", resultMap.SenderIP, " <=> ", s.MyAddress)
+				log.Println("Established new connection ", resultMap.SenderName, resultMap.SenderIP, " <=> ", s.MyAddress)
 				s.Mutex.Unlock()
 			} else {
 				err = conn.Close()

@@ -49,6 +49,6 @@ func main() {
 		if err != nil {
 			continue
 		}
-		go s.HandleConnection(conn, "", "")
+		go s.HandleConnection(conn)
 	}
 }
