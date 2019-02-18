@@ -48,7 +48,6 @@ func main() {
 	go s.DialOthers(dialChannel)
 
 	for {
-		fmt.Println("hereerere")
 		conn, err := ServerConn.Accept()
 		if err != nil {
 			continue
@@ -59,15 +58,15 @@ func main() {
 		clientPortString := temp[len(temp)-1]
 
 		clientPort, _ := strconv.Atoi(clientPortString)
-		fmt.Println("clientPort", clientPort)
-		fmt.Println("portNum", portNum)
-		_, ok := s.EstablishedInConns[clientIP]
-		fmt.Println("ok", ok)
+		s.Mutex.Lock()
+		_, ok := s.EstablishedConns[clientIP]
 		if !ok && clientPort != portNum {
 			log.Println("Received new Client TCP connection from ", clientIP)
-			s.EstablishedInConns[clientIP] = conn
-			go s.HandleRequest(conn)
+			s.EstablishedConns[clientIP] = conn
+			s.Mutex.Unlock()
+			go s.HandleConnection(conn)
 		}
+		s.Mutex.Unlock()
 
 	}
 }

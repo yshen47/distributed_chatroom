@@ -3,10 +3,11 @@ package server
 import "encoding/json"
 
 type Action struct {
-	ActionType int // 0: join, 1: ping, 2: ack 3: leave
-	Record []Entry
-	InitialTimeStamp int64
-	IpAddress string
+	ActionType int // 0: Message, 1: Leave
+	Timestamp string
+	SenderName string
+	SenderIP string
+	Metadata string //for Message: then it stores the actual message, for Leave: it stores the failed server address
 }
 
 func (a *Action)  ToBytes() []byte {
@@ -15,14 +16,10 @@ func (a *Action)  ToBytes() []byte {
 }
 
 func EncodeActionType(actionType string) int {
-	if actionType == "Join" {
+	if actionType == "Message" {
 		return 0
-	} else if actionType == "Ping" {
-		return 1
-	} else if actionType == "Ack" {
-		return 2
 	} else if actionType == "Leave" {
-		return 3
+		return 1
 	}
 	return -1
 }

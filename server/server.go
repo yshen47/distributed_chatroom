@@ -7,84 +7,76 @@ import (
 	"log"
 	"mp1/utils"
 	"net"
+	"sync"
 	"time"
 )
 
 type SwimServer struct {
-	name               string
-	tDetection         int64
-	tSuspect           int64
-	tFailure           int64
-	tLeave             int64
-	GlobalState        *GlobalState
-	MyAddress          string
-	portNum            int
-	InitialTimeStamp   int64
-	GlobalServerAddrs  [] string
-	EstablishedInConns map[string] net.Conn
-	EstablishedOutConns map[string] net.Conn
+	name              string
+	MyAddress         string
+	portNum           int
+	PeopleNum         int
+	GlobalServerAddrs [] string
+	EstablishedConns  map[string] net.Conn
+	Mutex             *sync.Mutex
 }
 
 func (s * SwimServer) Constructor(name string, peopleNum int, portNum int, myAddr string, globalServerAddrs [] string) {
-	currTimeStamp := time.Now().Unix()
-	s.GlobalState = new(GlobalState)
 	s.MyAddress = myAddr
-	s.InitialTimeStamp = currTimeStamp
-	s.tDetection = 2
-	s.tSuspect = 3
-	s.tFailure = 3
-	s.tLeave = 3
-	s.EstablishedInConns = make(map[string] net.Conn)
-	s.EstablishedOutConns = make(map[string] net.Conn)
+	s.EstablishedConns = make(map[string] net.Conn)
 	s.portNum = portNum
-	var entry Entry
-	entry.lastUpdatedTime = 0
-	entry.EntryType = EncodeEntryType("alive")
-	entry.Incarnation = 0
-	entry.InitialTimeStamp = currTimeStamp
-	entry.IpAddress = s.MyAddress
-	s.GlobalState.AddNewNode(entry)
 	s.GlobalServerAddrs = globalServerAddrs
+	s.PeopleNum = peopleNum
+	s.Mutex = &sync.Mutex{}
 }
 
 func (s *SwimServer) DialOthers(c chan ConnectionPair)  map[string]net.Conn {
-	fmt.Println(s.MyAddress)
+	isFirst := true
 	for {
 		for _, ip := range s.GlobalServerAddrs {
 			if ip == s.MyAddress {
 				time.Sleep(1*time.Second)
 				continue
 			}
-			if _, ok := s.EstablishedOutConns[ip]; ok {
+			s.Mutex.Lock()
+			_, ok := s.EstablishedConns[ip]
+			s.Mutex.Unlock()
+			if ok {
 				//ip has already established, so skip
 				continue
 			}
 			//fmt.Println("trying to dial ", ip)
 			conn, err := net.DialTimeout("tcp", ip, 1*time.Second)
 			if err == nil {
-				log.Println("Established new out going connection to ", ip)
-				s.EstablishedOutConns[ip] = conn
+				s.Mutex.Lock()
+				log.Println("Established new connection ", ip, " <=> ", s.MyAddress)
+				s.EstablishedConns[ip] = conn
+				s.Mutex.Unlock()
 			}
 			time.Sleep(1*time.Second)
+		}
+		if len(s.EstablishedConns) == s.PeopleNum- 1 && isFirst {
+			isFirst = false
+			//TODO: READY
+			log.Println("READY!")
 		}
 	}
 }
 
 
-func (s *SwimServer) HandleRequest(conn net.Conn) {
+func (s *SwimServer) HandleConnection(conn net.Conn) {
 	buf := make([]byte, 1024)
 	for {
 		n, err := conn.Read(buf)
 		if err == io.EOF {
 			//Failure detected
-			for k, v := range s.EstablishedInConns {
-				if v == conn {
-					delete(s.EstablishedInConns, k)
-					err = conn.Close()
-					utils.CheckError(err)
-					return
-				}
-			}
+			s.Mutex.Lock()
+			delete(s.EstablishedConns, conn.LocalAddr().String())
+			s.Mutex.Unlock()
+			//TODO:send someone left message
+			err = conn.Close()
+			utils.CheckError(err)
+			return
 		}
 		var resultMap Action
 		// parse resultMap to json format
@@ -92,11 +84,20 @@ func (s *SwimServer) HandleRequest(conn net.Conn) {
 		if err != nil {
 			fmt.Println("error:", err)
 		}
-	}
-}
+		if resultMap.ActionType == EncodeActionType("Message") {
+			//TODO: Print out message
 
-func (s *SwimServer) SendMessageWithTCP(message string) {
-	for ip := range s.EstablishedOutConns {
+		} else if resultMap.ActionType == EncodeActionType("Leave") {
+			s.Mutex.Lock()
+			_, ok := s.EstablishedConns[resultMap.Metadata]
+			if ok {
+				delete(s.EstablishedConns, resultMap.Metadata)
+				s.Mutex.Unlock()
+				//TODO:send someone left message
+				log.Println(resultMap.Metadata, " left.")
+			}
+			s.Mutex.Unlock()
 
+		}
 	}
 }
