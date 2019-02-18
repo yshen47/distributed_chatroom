@@ -23,6 +23,7 @@ type SwimServer struct {
 
 func (s * SwimServer) Constructor(name string, peopleNum int, portNum int, myAddr string, globalServerAddrs [] string) {
 	s.MyAddress = myAddr
+	s.name = name
 	s.EstablishedConns = make(map[string] net.Conn)
 	s.portNum = portNum
 	s.GlobalServerAddrs = globalServerAddrs
@@ -48,11 +49,8 @@ func (s *SwimServer) DialOthers(c chan ConnectionPair)  map[string]net.Conn {
 			//fmt.Println("trying to dial ", ip)
 			conn, err := net.DialTimeout("tcp", ip, 1*time.Second)
 			if err == nil {
-				s.Mutex.Lock()
-				log.Println("Established new connection ", conn.RemoteAddr().String(), " <=> ", s.MyAddress)
-				s.EstablishedConns[ip] = conn
-				s.Mutex.Unlock()
-				action := Action{ActionType:EncodeActionType("Introduce"), SenderIP: s.MyAddress}
+				go s.HandleConnection(conn, "", ip)
+				action := Action{ActionType:EncodeActionType("Introduce"), SenderIP: s.MyAddress, SenderName:s.name}
 				conn.Write(action.ToBytes())
 			}
 			time.Sleep(1*time.Second)
@@ -66,14 +64,22 @@ func (s *SwimServer) DialOthers(c chan ConnectionPair)  map[string]net.Conn {
 }
 
 
-func (s *SwimServer) HandleConnection(conn net.Conn) {
+func (s *SwimServer) HandleConnection(conn net.Conn, remoteName string, remoteAddr string) {
+	if remoteAddr != "" {
+		s.Mutex.Lock()
+		s.EstablishedConns[remoteAddr] = conn
+		log.Println("Established new connection ", remoteAddr, " <=> ", s.MyAddress)
+		s.Mutex.Unlock()
+	}
 	buf := make([]byte, 1024)
 	for {
+		log.Println("hello!")
 		n, err := conn.Read(buf)
 		if err == io.EOF {
 			//Failure detected
 			s.Mutex.Lock()
-			delete(s.EstablishedConns, conn.LocalAddr().String())
+			log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
+			delete(s.EstablishedConns, remoteAddr)
 			s.Mutex.Unlock()
 			//TODO:send someone left message
 			err = conn.Close()
@@ -93,9 +99,13 @@ func (s *SwimServer) HandleConnection(conn net.Conn) {
 			if !ok {
 				s.Mutex.Lock()
 				s.EstablishedConns[resultMap.SenderIP] = conn
+				remoteAddr = resultMap.SenderIP
+				remoteName = resultMap.SenderName
 				log.Println("Established new connection ", resultMap.SenderIP, " <=> ", s.MyAddress)
 				s.Mutex.Unlock()
 			} else {
+				err = conn.Close()
+				utils.CheckError(err)
 				return
 			}
 		} else if resultMap.ActionType == EncodeActionType("Message") {

@@ -4,9 +4,19 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 )
+func send (conn net.Conn) {
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Text to send: ")
+		text, _ := reader.ReadString('\n')
+		// send to socket
+		fmt.Fprintf(conn, text + "\n")
+	}
 
+}
 
 func main() {
 
@@ -15,8 +25,10 @@ func main() {
 	// listen on all interfaces
 	ln, _ := net.Listen("tcp", ":8081")
 
+
 	// accept connection on port
 	conn, _ := ln.Accept()
+	go send(conn)
 	fmt.Println(conn.LocalAddr())
 
 	// run loop forever (or until ctrl-c)
