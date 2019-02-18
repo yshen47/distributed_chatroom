@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var DEBUG = true
@@ -47,18 +48,26 @@ func main() {
 	go s.DialOthers(dialChannel)
 
 	for {
+		fmt.Println("hereerere")
 		conn, err := ServerConn.Accept()
 		if err != nil {
 			continue
 		}
-		clientIP := conn.RemoteAddr().String()
-		if _, ok := s.EstablishedInConns[clientIP]; ok {
-			//
-			fmt.Println("this is wired, shouldn't reach here.")
-		} else {
+		clientIP := conn.LocalAddr().String()
+		temp := strings.Split(clientIP, ":")
+
+		clientPortString := temp[len(temp)-1]
+
+		clientPort, _ := strconv.Atoi(clientPortString)
+		fmt.Println("clientPort", clientPort)
+		fmt.Println("portNum", portNum)
+		_, ok := s.EstablishedInConns[clientIP]
+		fmt.Println("ok", ok)
+		if !ok && clientPort != portNum {
 			log.Println("Received new Client TCP connection from ", clientIP)
 			s.EstablishedInConns[clientIP] = conn
 			go s.HandleRequest(conn)
 		}
+
 	}
 }

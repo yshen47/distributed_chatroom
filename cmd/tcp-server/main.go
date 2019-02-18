@@ -17,7 +17,7 @@ func main() {
 
 	// accept connection on port
 	conn, _ := ln.Accept()
-	fmt.Println(conn.RemoteAddr())
+	fmt.Println(conn.LocalAddr())
 
 	// run loop forever (or until ctrl-c)
 	for {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mp1/utils"
 	"net"
 	"time"
@@ -47,22 +48,24 @@ func (s * SwimServer) Constructor(name string, peopleNum int, portNum int, myAdd
 }
 
 func (s *SwimServer) DialOthers(c chan ConnectionPair)  map[string]net.Conn {
+	fmt.Println(s.MyAddress)
 	for {
 		for _, ip := range s.GlobalServerAddrs {
 			if ip == s.MyAddress {
+				time.Sleep(1*time.Second)
 				continue
 			}
-			if _, ok := s.EstablishedInConns[ip]; ok {
+			if _, ok := s.EstablishedOutConns[ip]; ok {
 				//ip has already established, so skip
 				continue
 			}
-			fmt.Println("Trying to dial ", ip)
+			//fmt.Println("trying to dial ", ip)
 			conn, err := net.DialTimeout("tcp", ip, 1*time.Second)
 			if err == nil {
-				//Established new outgoing connection
+				log.Println("Established new out going connection to ", ip)
 				s.EstablishedOutConns[ip] = conn
-				fmt.Println("hererrer")
 			}
+			time.Sleep(1*time.Second)
 		}
 	}
 }
@@ -89,5 +92,11 @@ func (s *SwimServer) HandleRequest(conn net.Conn) {
 		if err != nil {
 			fmt.Println("error:", err)
 		}
+	}
+}
+
+func (s *SwimServer) SendMessageWithTCP(message string) {
+	for ip := range s.EstablishedOutConns {
+
 	}
 }
