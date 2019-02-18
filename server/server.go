@@ -31,7 +31,7 @@ func (s * SwimServer) Constructor(name string, peopleNum int, portNum int, myAdd
 	s.Mutex = &sync.Mutex{}
 }
 
-func (s *SwimServer) DialOthers(c chan ConnectionPair)  map[string]net.Conn {
+func (s *SwimServer) DialOthers() {
 	isFirst := true
 	for {
 		for _, ip := range s.GlobalServerAddrs {

@@ -42,9 +42,7 @@ func main() {
 	//Start the server
 	ServerConn, err := net.Listen("tcp", myAddress)
 	utils.CheckError(err)
-	dialChannel := make(chan server.ConnectionPair)
-
-	go s.DialOthers(dialChannel)
+	go s.DialOthers()
 
 	for {
 		conn, err := ServerConn.Accept()
