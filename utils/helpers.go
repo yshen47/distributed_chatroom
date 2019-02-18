@@ -43,7 +43,7 @@ func GetServerIPs(port int, num int, debug bool) [] string {
 	ips := make([]string, num)
 	if debug {
 		for i := range ips {
-			ips[i] = Concatenate("localhost:", 5800 + i * 100)
+			ips[i] = Concatenate("127.0.0.1:", 5800 + i * 100)
 		}
 	} else {
 		for i := range ips {
@@ -75,7 +75,7 @@ func GetCurrentIP(debug bool, port int) string {
 		}
 		return ""
 	} else {
-		return Concatenate("localhost:", port)
+		return Concatenate("127.0.0.1:", port)
 	}
 }
 

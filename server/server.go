@@ -49,13 +49,13 @@ func (s *SwimServer) DialOthers(c chan ConnectionPair)  map[string]net.Conn {
 			conn, err := net.DialTimeout("tcp", ip, 1*time.Second)
 			if err == nil {
 				s.Mutex.Lock()
-				log.Println("Established new connection ", ip, " <=> ", s.MyAddress)
+				log.Println("Established new connection ", conn.RemoteAddr().String(), " <=> ", s.MyAddress)
 				s.EstablishedConns[ip] = conn
 				s.Mutex.Unlock()
 			}
 			time.Sleep(1*time.Second)
 		}
-		if len(s.EstablishedConns) == s.PeopleNum- 1 && isFirst {
+		if len(s.EstablishedConns) == s.PeopleNum - 1 && isFirst {
 			isFirst = false
 			//TODO: READY
 			log.Println("READY!")
