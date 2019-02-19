@@ -89,7 +89,6 @@ func (s *Server) startChat () {
 func (s *Server) HandleConnection(conn net.Conn) {
 	var remoteName string
 	var remoteAddr string
-
 	s.unicast(conn, "Introduce", "")
 	buf := make([]byte, 1024)
 	for {
@@ -112,10 +111,13 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		var resultMap Action
 		// parse resultMap to json format
 		err = json.Unmarshal(buf[0:n], &resultMap)
+		fmt.Println("n:",n)
+		fmt.Print("resmap:",resultMap)
 		if err != nil {
+			fmt.Println("hihihi")
 			fmt.Println("error:", err)
-		}
 
+		}
 		if resultMap.ActionType == EncodeActionType("Introduce") {
 			s.Mutex.Lock()
 			_, ok := s.EstablishedConns[resultMap.SenderIP];
@@ -213,6 +215,7 @@ func (s *Server) unicast(target net.Conn, actionType string, metaData string) {
 	//s.updateVectorTimestamp()
 	action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.name, Metadata:metaData, VectorTimestamp:s.VectorTimestamp}
 	_, err := target.Write(action.ToBytes())
+	fmt.Println(action)
 	utils.CheckError(err)
 }
 

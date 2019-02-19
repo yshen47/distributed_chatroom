@@ -28,7 +28,6 @@ func main() {
 			return
 		}
 	}
-
 	myAddress := utils.GetCurrentIP(DEBUG, portNum)
 	globalServerIPs := utils.GetServerIPs(portNum, peopleNum, DEBUG)
 	//utils.SetupLog(name)
