@@ -191,6 +191,7 @@ func (s * Server)handleMessage(message Message) []string{
 	//able to deliever message immediately
 	}
 
+
 func (s *Server) mergeVectorTimestamp(newTimestamp map[string] int) {
 	for k, newVal := range newTimestamp {
 		oldVal, ok := s.VectorTimestamp[k]
