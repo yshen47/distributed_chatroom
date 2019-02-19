@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -176,6 +175,7 @@ func (s * Server)handleMessage(message Message)string{
 
 	}
 */
+	return ""
 }
 
 func (s *Server) mergeVectorTimestamp(newTimestamp map[string] int) {
