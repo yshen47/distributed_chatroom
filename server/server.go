@@ -133,6 +133,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 				return
 			}
 		} else if resultMap.ActionType == EncodeActionType("Message") {
+			log.Println(resultMap.Metadata)
 			s.handleMessage(Message{sender:resultMap.SenderName, content:resultMap.Metadata, timestamp:resultMap.VectorTimestamp})
 		} else if resultMap.ActionType == EncodeActionType("Leave") {
 			s.Mutex.Lock()
@@ -178,13 +179,19 @@ func (s * Server)handleMessage(message Message) []string{
 	for i:=0;i<len(s.messageQueue);i++{
 		if s.checktimestamp(s.messageQueue[i]){
 			s.VectorTimestamp[s.messageQueue[i].sender] += 1
-			deliver = append(deliver,s.messageQueue[i].content)
+			realContent := utils.Concatenate(s.messageQueue[i].sender, ": ", s.messageQueue[i].content)
+			deliver = append(deliver,realContent)
 
 		}else{
 			newQueue = append(newQueue,s.messageQueue[i])
 		}
 	}
+	for _, message := range deliver {
+		if message != "" {
+			log.Println(message)
+		}
 
+	}
 	return deliver
 
 
