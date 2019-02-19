@@ -6,3 +6,4 @@ type Message struct {
 	timestamp 	map[string]int
 
 }
+

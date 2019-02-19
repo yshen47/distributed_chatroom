@@ -33,7 +33,7 @@ func main() {
 	globalServerIPs := utils.GetServerIPs(portNum, peopleNum, DEBUG)
 	//utils.SetupLog(name)
 
-	s := new(server.SwimServer)
+	s := new(server.Server)
 	s.Constructor(name, peopleNum, portNum, myAddress, globalServerIPs)
 
 	log.Println("Start server with the: ", name, myAddress, peopleNum)

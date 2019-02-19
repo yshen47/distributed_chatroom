@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bufio"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +14,7 @@ import (
 	"time"
 )
 
-type SwimServer struct {
+type Server struct {
 	name              string
 	MyAddress         string
 	portNum           int
@@ -24,7 +26,7 @@ type SwimServer struct {
 	messageQueue      [] Message
 }
 
-func (s * SwimServer) Constructor(name string, peopleNum int, portNum int, myAddr string, globalServerAddrs [] string) {
+func (s * Server) Constructor(name string, peopleNum int, portNum int, myAddr string, globalServerAddrs [] string) {
 	s.MyAddress = myAddr
 	s.name = name
 	s.EstablishedConns = make(map[string] net.Conn)
@@ -37,7 +39,8 @@ func (s * SwimServer) Constructor(name string, peopleNum int, portNum int, myAdd
 
 }
 
-func (s *SwimServer) DialOthers() {
+
+func (s *Server) DialOthers() {
 	isFirst := true
 	for {
 		if len(s.EstablishedConns) == s.PeopleNum - 1 {
@@ -45,6 +48,7 @@ func (s *SwimServer) DialOthers() {
 				isFirst = false
 				//TODO: READY
 				log.Println("READY!")
+				go s.startChat()
 			}
 			continue
 		}
@@ -66,12 +70,23 @@ func (s *SwimServer) DialOthers() {
 				go s.HandleConnection(conn)
 			}
 		}
-
 	}
 }
 
+func (s *Server) startChat () {
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Text to send: ")
+		text, _ := reader.ReadString('\n')
+		// bMulticast
+		s.updateVectorTimestamp()
+		s.bMuticast("Message", text)
+		log.Println(text)
+	}
 
-func (s *SwimServer) HandleConnection(conn net.Conn) {
+}
+
+func (s *Server) HandleConnection(conn net.Conn) {
 	var remoteName string
 	var remoteAddr string
 
@@ -101,15 +116,6 @@ func (s *SwimServer) HandleConnection(conn net.Conn) {
 			fmt.Println("error:", err)
 		}
 
-		if resultMap.ActionType == EncodeActionType("Message") {
-			s.messageQueue = append(s.messageQueue, Message{sender:resultMap.SenderName, content:resultMap.Metadata, timestamp:resultMap.VectorTimestamp})
-		}
-
-		//introduce is not multi-cast message
-		if resultMap.ActionType == EncodeActionType("Message") {
-			s.mergeVectorTimestamp(resultMap.VectorTimestamp)
-		}
-
 		if resultMap.ActionType == EncodeActionType("Introduce") {
 			s.Mutex.Lock()
 			_, ok := s.EstablishedConns[resultMap.SenderIP];
@@ -127,15 +133,13 @@ func (s *SwimServer) HandleConnection(conn net.Conn) {
 				return
 			}
 		} else if resultMap.ActionType == EncodeActionType("Message") {
-			//TODO: Print out message
-
+			s.handleMessage(Message{sender:resultMap.SenderName, content:resultMap.Metadata, timestamp:resultMap.VectorTimestamp})
 		} else if resultMap.ActionType == EncodeActionType("Leave") {
 			s.Mutex.Lock()
 			_, ok := s.EstablishedConns[resultMap.Metadata]
 			if ok {
 				delete(s.EstablishedConns, resultMap.Metadata)
 				s.Mutex.Unlock()
-				//TODO:send someone left message
 				s.bMuticast("Leave", utils.Concatenate(resultMap.Metadata))
 				log.Println(resultMap.Metadata)
 			}
@@ -145,7 +149,36 @@ func (s *SwimServer) HandleConnection(conn net.Conn) {
 	}
 }
 
-func (s *SwimServer) mergeVectorTimestamp(newTimestamp map[string] int) {
+
+func (s * Server)handleMessage(message Message)string{
+/*
+	s.messageQueue = append(s.messageQueue, message)
+	flag := 0
+	for k,_ := range message.timestamp{
+		if k == message.sender{
+			if message.timestamp[k] != s.VectorTimestamp[k]{
+				flag = 1
+				break
+			}
+		}else{
+			if message.timestamp[k] > s.VectorTimestamp[k] {
+				flag = 1
+				break
+			}
+		}
+	}
+
+	if flag == 0 {
+		//able to deliever message immediately
+		s.VectorTimestamp[message.sender] += 1
+		return ret.content
+	} else {
+
+	}
+*/
+}
+
+func (s *Server) mergeVectorTimestamp(newTimestamp map[string] int) {
 	for k, newVal := range newTimestamp {
 		oldVal, ok := s.VectorTimestamp[k]
 		if ok {
@@ -158,18 +191,18 @@ func (s *SwimServer) mergeVectorTimestamp(newTimestamp map[string] int) {
 	}
 }
 
-func (s *SwimServer) updateVectorTimestamp() {
+func (s *Server) updateVectorTimestamp() {
 	s.VectorTimestamp[s.MyAddress] += 1
 }
 
-func (s *SwimServer) unicast(target net.Conn, actionType string, metaData string) {
+func (s *Server) unicast(target net.Conn, actionType string, metaData string) {
 	//s.updateVectorTimestamp()
 	action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.name, Metadata:metaData, VectorTimestamp:s.VectorTimestamp}
 	_, err := target.Write(action.ToBytes())
 	utils.CheckError(err)
 }
 
-func (s *SwimServer) bMuticast(actionType string, metaData string) {
+func (s *Server) bMuticast(actionType string, metaData string) {
 	if EncodeActionType(actionType) == -1 {
 		log.Println("Fatal error :actionType doesn't exist.")
 		os.Exit(1)
