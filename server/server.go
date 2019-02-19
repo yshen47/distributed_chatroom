@@ -12,6 +12,7 @@ import (
 	"os"
 	"sync"
 	"time"
+
 )
 
 type Server struct {
@@ -24,6 +25,7 @@ type Server struct {
 	Mutex             *sync.Mutex
 	VectorTimestamp   map[string] int
 	messageQueue      [] Message
+
 }
 
 func (s * Server) Constructor(name string, peopleNum int, portNum int, myAddr string, globalServerAddrs [] string) {
@@ -36,7 +38,6 @@ func (s * Server) Constructor(name string, peopleNum int, portNum int, myAddr st
 	s.Mutex = &sync.Mutex{}
 	s.VectorTimestamp = make(map[string] int)
 	s.VectorTimestamp[s.MyAddress] = 0
-
 }
 
 
@@ -149,34 +150,47 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	}
 }
 
-
-func (s * Server)handleMessage(message Message)string{
-/*
-	s.messageQueue = append(s.messageQueue, message)
-	flag := 0
+func (s* Server)checktimestamp(message Message)bool{
+	var flag bool = true
 	for k,_ := range message.timestamp{
 		if k == message.sender{
 			if message.timestamp[k] != s.VectorTimestamp[k]{
-				flag = 1
+				flag = false
 				break
 			}
 		}else{
 			if message.timestamp[k] > s.VectorTimestamp[k] {
-				flag = 1
+				flag = false
 				break
 			}
 		}
 	}
-
-	if flag == 0 {
-		//able to deliever message immediately
-		s.VectorTimestamp[message.sender] += 1
-		return ret.content
-	} else {
-
-	}
-*/
+	return flag
 }
+
+
+func (s * Server)handleMessage(message Message) []string{
+
+	s.messageQueue = append(s.messageQueue, message)
+	var newQueue []Message
+	var deliver []string
+	deliver = make([]string,10)
+	newQueue = make([]Message,10)
+	for i:=0;i<len(s.messageQueue);i++{
+		if s.checktimestamp(s.messageQueue[i]){
+			s.VectorTimestamp[s.messageQueue[i].sender] += 1
+			deliver = append(deliver,s.messageQueue[i].content)
+
+		}else{
+			newQueue = append(newQueue,s.messageQueue[i])
+		}
+	}
+
+	return deliver
+
+
+	//able to deliever message immediately
+	}
 
 func (s *Server) mergeVectorTimestamp(newTimestamp map[string] int) {
 	for k, newVal := range newTimestamp {
