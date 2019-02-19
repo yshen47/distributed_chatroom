@@ -3,11 +3,11 @@ package server
 import "encoding/json"
 
 type Action struct {
-	ActionType int // 0: Message, 1: Leave
-	Timestamp string
-	SenderName string
-	SenderIP string
-	Metadata string //for Message: then it stores the actual message, for Leave: it stores the failed server address
+	ActionType      int // 0: Message, 1: Leave
+	VectorTimestamp map[string]int
+	SenderName      string
+	SenderIP        string
+	Metadata        string //for Message: then it stores the actual message, for Leave: it stores the failed server address
 }
 
 func (a *Action)  ToBytes() []byte {
