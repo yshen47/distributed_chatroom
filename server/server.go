@@ -2,17 +2,16 @@ package server
 
 import (
 	"bufio"
+	"cs425_mp1/utils"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"cs425_mp1/utils"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
-
 )
 
 type Server struct {
@@ -53,7 +52,19 @@ func (s *Server) DialOthers() {
 				s.ChatMutex.Lock()
 				log.Println("READY!")
 				s.ChatMutex.Unlock()
-				go s.startChat()
+
+
+				for {
+					reader := bufio.NewReader(os.Stdin)
+					s.ChatMutex.Lock()
+					log.Print(": ")
+					s.ChatMutex.Unlock()
+					text, _ := reader.ReadString('\n')
+					// bMulticast
+					s.updateVectorTimestamp()
+					s.bMuticast("Message", text)
+				}
+
 			}
 			continue
 		}
@@ -78,18 +89,6 @@ func (s *Server) DialOthers() {
 	}
 }
 
-func (s *Server) startChat () {
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		s.ChatMutex.Lock()
-		log.Print(": ")
-		s.ChatMutex.Unlock()
-		text, _ := reader.ReadString('\n')
-		// bMulticast
-		s.updateVectorTimestamp()
-		s.bMuticast("Message", text)
-	}
-}
 
 func (s *Server) HandleConnection(conn net.Conn) {
 	var remoteName string
