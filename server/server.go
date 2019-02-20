@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"mp1/utils"
+	"cs425_mp1/utils"
 	"net"
 	"os"
 	"strings"

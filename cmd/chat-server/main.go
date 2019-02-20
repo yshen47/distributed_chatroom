@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"mp1/server"
-	"mp1/utils"
+	"cs425_mp1/server"
+	"cs425_mp1/utils"
 	"net"
 	"os"
 	"strconv"
