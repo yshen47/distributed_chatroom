@@ -100,12 +100,16 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		if err == io.EOF {
 			//Failure detected
 			//log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
+			s.ChatMutex.Lock()
+			_, ok := s.EstablishedConns[remoteAddr]
+			if ok {
+				log.Println(remoteName, " left!")
+			}
+			s.ChatMutex.Unlock()
+
 			s.ConnMutex.Lock()
 			delete(s.EstablishedConns, remoteAddr)
 			s.ConnMutex.Unlock()
-			s.ChatMutex.Lock()
-			log.Println(remoteName, " left.")
-			s.ChatMutex.Unlock()
 			s.bMuticast("Leave", utils.Concatenate(remoteName, ";", remoteAddr))
 			err = conn.Close()
 			utils.CheckError(err)
@@ -145,16 +149,20 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		} else if resultMap.ActionType == EncodeActionType("Leave") {
 			deleteRemoteAddr := strings.Split(resultMap.Metadata, ";")[1]
 			deleteRemoteName := strings.Split(resultMap.Metadata,";")[0]
+
+			s.ChatMutex.Lock()
+			_, ok := s.EstablishedConns[remoteAddr]
+			if ok {
+				log.Println(remoteName, " left!")
+			}
+			s.ChatMutex.Unlock()
+
 			s.ConnMutex.Lock()
 			_, ok := s.EstablishedConns[deleteRemoteAddr]
 			if ok {
 				delete(s.EstablishedConns, deleteRemoteAddr)
 				s.ConnMutex.Unlock()
 				s.bMuticast("Leave", resultMap.Metadata)
-				s.ChatMutex.Lock()
-				log.Println(deleteRemoteName, " left.")
-				s.ChatMutex.Unlock()
-
 			} else {
 				s.ConnMutex.Unlock()
 			}
