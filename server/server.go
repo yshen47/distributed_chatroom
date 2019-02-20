@@ -116,7 +116,6 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		var resultMap Action
 		// parse resultMap to json format
 		err = json.Unmarshal(buf[0:n], &resultMap)
-		fmt.Println("new request: ",resultMap)
 		if err != nil {
 			fmt.Println("error:", err)
 
@@ -249,9 +248,7 @@ func (s *Server) bMuticast(actionType string, metaData string) {
 		log.Println("Fatal error :actionType doesn't exist.")
 		os.Exit(1)
 	}
-	fmt.Println("bMulticast starts...")
 	for _, conn := range s.EstablishedConns {
-		fmt.Println("check bmulticast:", conn.RemoteAddr())
 		action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.Name, Metadata:metaData, VectorTimestamp: s.VectorTimestamp}
 		_, err := conn.Write(action.ToBytes())
 		utils.CheckError(err)
