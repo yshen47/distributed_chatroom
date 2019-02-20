@@ -48,6 +48,9 @@ func GetServerIPs(port int, num int, debug bool) [] string {
 		return ips
 	} else {
 		ips := [] string {"172.22.94.67", "172.22.156.59", "172.22.158.59" ,"172.22.94.68", "172.22.156.60", "172.22.158.60", "172.22.94.69", "172.22.156.61", "172.22.158.61", "172.22.94.70"}
+		for i, ip := range ips {
+			ips[i] = Concatenate(ip, ":", port)
+		}
 		return ips
 	}
 }
