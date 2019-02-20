@@ -195,10 +195,10 @@ func (s *Server) isMessageReceived(message Message) bool {
 
 func (s * Server)handleMessage(message Message) {
 	s.messageQueue = append(s.messageQueue, message)
-	deliver := make([]string,10)
-	newQueue := make([]Message,10)
+	deliver := make([]string,0)
+	newQueue := make([]Message,0)
 	for i:=0;i<len(s.messageQueue);i++{
-		if s.isDeliverable(s.messageQueue[i]){
+		if s.isDeliverable(s.messageQueue[i]) {
 			s.VectorTimestamp[s.messageQueue[i].Sender] += 1
 			realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content)
 			deliver = append(deliver,realContent)
@@ -208,8 +208,8 @@ func (s * Server)handleMessage(message Message) {
 		}
 	}
 	s.messageQueue = newQueue
-	fmt.Println(len(deliver))
-	fmt.Println(len(s.messageQueue))
+	//fmt.Println(len(deliver))
+	//fmt.Println(len(s.messageQueue))
 	for _, message := range deliver {
 		if message != "" {
 
