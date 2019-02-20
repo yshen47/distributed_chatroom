@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-var DEBUG = true
+var DEBUG = false
 
 
 func main() {
