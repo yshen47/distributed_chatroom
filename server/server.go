@@ -9,6 +9,7 @@ import (
 	"mp1/utils"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -92,7 +93,7 @@ func (s *Server) startChat () {
 
 func (s *Server) HandleConnection(conn net.Conn) {
 	var remoteName string
-	//var remoteAddr string
+	var remoteAddr string
 	s.unicast(conn, "Introduce", "")
 	buf := make([]byte, 1024)
 	for {
@@ -100,8 +101,13 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		if err == io.EOF {
 			//Failure detected
 			//log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
-			message := utils.Concatenate(remoteName, " left.")
-			s.bMuticast("Leave", message)
+			s.ConnMutex.Lock()
+			delete(s.EstablishedConns, remoteAddr)
+			s.ConnMutex.Unlock()
+			s.ChatMutex.Lock()
+			log.Println(remoteName, " left.")
+			s.ChatMutex.Unlock()
+			s.bMuticast("Leave", utils.Concatenate(remoteName, ";", remoteAddr))
 			err = conn.Close()
 			utils.CheckError(err)
 			return
@@ -123,7 +129,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			if !ok {
 				s.ConnMutex.Lock()
 				s.EstablishedConns[resultMap.SenderIP] = conn
-				//remoteAddr = resultMap.SenderIP
+				remoteAddr = resultMap.SenderIP
 				remoteName = resultMap.SenderName
 				log.Println("Established new connection ", resultMap.SenderName, resultMap.SenderIP, " <=> ", s.MyAddress)
 				s.ConnMutex.Unlock()
@@ -139,18 +145,21 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			}
 
 		} else if resultMap.ActionType == EncodeActionType("Leave") {
+			deleteRemoteAddr := strings.Split(resultMap.Metadata, ";")[1]
+			deleteRemoteName := strings.Split(resultMap.Metadata,";")[0]
 			s.ConnMutex.Lock()
-			_, ok := s.EstablishedConns[resultMap.Metadata]
+			_, ok := s.EstablishedConns[deleteRemoteAddr]
 			if ok {
-				delete(s.EstablishedConns, resultMap.Metadata)
+				delete(s.EstablishedConns, deleteRemoteAddr)
 				s.ConnMutex.Unlock()
-				s.bMuticast("Leave", utils.Concatenate(resultMap.Metadata))
+				s.bMuticast("Leave", resultMap.Metadata)
 				s.ChatMutex.Lock()
-				log.Println(resultMap.Metadata)
+				log.Println(deleteRemoteName, " left.")
 				s.ChatMutex.Unlock()
-			}
-			s.ConnMutex.Unlock()
 
+			} else {
+				s.ConnMutex.Unlock()
+			}
 		}
 	}
 }
