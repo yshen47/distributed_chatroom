@@ -248,7 +248,10 @@ func (s *Server) bMuticast(actionType string, metaData string) {
 		log.Println("Fatal error :actionType doesn't exist.")
 		os.Exit(1)
 	}
-	for _, conn := range s.EstablishedConns {
+	for k, conn := range s.EstablishedConns {
+		if k == s.MyAddress {
+			continue
+		}
 		action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.Name, Metadata:metaData, VectorTimestamp: s.VectorTimestamp}
 		_, err := conn.Write(action.ToBytes())
 		utils.CheckError(err)
