@@ -15,13 +15,14 @@ import (
 )
 
 type Server struct {
-	name              string
+	Name              string
 	MyAddress         string
 	portNum           int
 	PeopleNum         int
 	GlobalServerAddrs [] string
 	EstablishedConns  map[string] net.Conn
-	Mutex             *sync.Mutex
+	ConnMutex         *sync.Mutex
+	ChatMutex         *sync.Mutex
 	VectorTimestamp   map[string] int
 	messageQueue      [] Message
 
@@ -29,14 +30,15 @@ type Server struct {
 
 func (s * Server) Constructor(name string, peopleNum int, portNum int, myAddr string, globalServerAddrs [] string) {
 	s.MyAddress = myAddr
-	s.name = name
+	s.Name = name
 	s.EstablishedConns = make(map[string] net.Conn)
 	s.portNum = portNum
 	s.GlobalServerAddrs = globalServerAddrs
 	s.PeopleNum = peopleNum
-	s.Mutex = &sync.Mutex{}
+	s.ConnMutex = &sync.Mutex{}
+	s.ChatMutex = &sync.Mutex{}
 	s.VectorTimestamp = make(map[string] int)
-	s.VectorTimestamp[s.MyAddress] = 0
+	s.VectorTimestamp[s.Name] = 0
 }
 
 
@@ -47,7 +49,9 @@ func (s *Server) DialOthers() {
 			if isFirst {
 				isFirst = false
 				//TODO: READY
+				s.ChatMutex.Lock()
 				log.Println("READY!")
+				s.ChatMutex.Unlock()
 				go s.startChat()
 			}
 			continue
@@ -57,9 +61,9 @@ func (s *Server) DialOthers() {
 				time.Sleep(1*time.Second)
 				continue
 			}
-			s.Mutex.Lock()
+			s.ConnMutex.Lock()
 			_, ok := s.EstablishedConns[ip]
-			s.Mutex.Unlock()
+			s.ConnMutex.Unlock()
 			if ok {
 				//ip has already established, so skip
 				continue
@@ -76,32 +80,28 @@ func (s *Server) DialOthers() {
 func (s *Server) startChat () {
 	for {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Text to send: ")
+		s.ChatMutex.Lock()
+		log.Print(": ")
+		s.ChatMutex.Unlock()
 		text, _ := reader.ReadString('\n')
 		// bMulticast
 		s.updateVectorTimestamp()
 		s.bMuticast("Message", text)
-		log.Println(text)
 	}
-
 }
 
 func (s *Server) HandleConnection(conn net.Conn) {
 	var remoteName string
-	var remoteAddr string
+	//var remoteAddr string
 	s.unicast(conn, "Introduce", "")
 	buf := make([]byte, 1024)
 	for {
 		n, err := conn.Read(buf)
 		if err == io.EOF {
 			//Failure detected
-			s.Mutex.Lock()
 			//log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
 			message := utils.Concatenate(remoteName, " left.")
-			delete(s.EstablishedConns, remoteAddr)
-			s.Mutex.Unlock()
 			s.bMuticast("Leave", message)
-			log.Println(message)
 			err = conn.Close()
 			utils.CheckError(err)
 			return
@@ -117,86 +117,98 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 		}
 		if resultMap.ActionType == EncodeActionType("Introduce") {
-			s.Mutex.Lock()
+			s.ConnMutex.Lock()
 			_, ok := s.EstablishedConns[resultMap.SenderIP];
-			s.Mutex.Unlock()
+			s.ConnMutex.Unlock()
 			if !ok {
-				s.Mutex.Lock()
+				s.ConnMutex.Lock()
 				s.EstablishedConns[resultMap.SenderIP] = conn
-				remoteAddr = resultMap.SenderIP
+				//remoteAddr = resultMap.SenderIP
 				remoteName = resultMap.SenderName
 				log.Println("Established new connection ", resultMap.SenderName, resultMap.SenderIP, " <=> ", s.MyAddress)
-				s.Mutex.Unlock()
+				s.ConnMutex.Unlock()
 			} else {
 				err = conn.Close()
 				utils.CheckError(err)
 				return
 			}
 		} else if resultMap.ActionType == EncodeActionType("Message") {
-			log.Println(resultMap.Metadata)
-			s.handleMessage(Message{sender:resultMap.SenderName, content:resultMap.Metadata, timestamp:resultMap.VectorTimestamp})
+			newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
+			if !s.isMessageReceived(newMessage) {
+				s.handleMessage(newMessage)
+			}
+
 		} else if resultMap.ActionType == EncodeActionType("Leave") {
-			s.Mutex.Lock()
+			s.ConnMutex.Lock()
 			_, ok := s.EstablishedConns[resultMap.Metadata]
 			if ok {
 				delete(s.EstablishedConns, resultMap.Metadata)
-				s.Mutex.Unlock()
+				s.ConnMutex.Unlock()
 				s.bMuticast("Leave", utils.Concatenate(resultMap.Metadata))
+				s.ChatMutex.Lock()
 				log.Println(resultMap.Metadata)
+				s.ChatMutex.Unlock()
 			}
-			s.Mutex.Unlock()
+			s.ConnMutex.Unlock()
 
 		}
 	}
 }
 
-func (s* Server)checktimestamp(message Message)bool{
-	var flag bool = true
-	for k,_ := range message.timestamp{
-		if k == message.sender{
-			if message.timestamp[k] != s.VectorTimestamp[k]{
-				flag = false
-				break
+func (s* Server) isDeliverable(message Message)bool{
+	for k,_ := range message.Timestamp {
+		if k == message.Sender {
+			if message.Timestamp[k] != s.VectorTimestamp[k] + 1 {
+				return false
 			}
 		}else{
-			if message.timestamp[k] > s.VectorTimestamp[k] {
-				flag = false
-				break
+			if message.Timestamp[k] > s.VectorTimestamp[k] {
+				return false
 			}
 		}
 	}
-	return flag
+	return true
 }
 
+func (s *Server) isMessageReceived(message Message) bool {
+	for _, old := range s.messageQueue {
+		for k, v := range old.Timestamp {
+			if message.Timestamp[k] != v {
+				return false
+			}
+		}
+		if old.Sender == message.Sender {
+			return true
+		}
+	}
+	return false
+}
 
-func (s * Server)handleMessage(message Message) []string{
-
+func (s * Server)handleMessage(message Message) {
 	s.messageQueue = append(s.messageQueue, message)
-	var newQueue []Message
-	var deliver []string
-	deliver = make([]string,10)
-	newQueue = make([]Message,10)
+	deliver := make([]string,10)
+	newQueue := make([]Message,10)
 	for i:=0;i<len(s.messageQueue);i++{
-		if s.checktimestamp(s.messageQueue[i]){
-			s.VectorTimestamp[s.messageQueue[i].sender] += 1
-			realContent := utils.Concatenate(s.messageQueue[i].sender, ": ", s.messageQueue[i].content)
+		if s.isDeliverable(s.messageQueue[i]){
+			s.VectorTimestamp[s.messageQueue[i].Sender] += 1
+			realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content)
+			fmt.Println(realContent)
 			deliver = append(deliver,realContent)
 
 		}else{
 			newQueue = append(newQueue,s.messageQueue[i])
 		}
 	}
+	s.messageQueue = newQueue
 	for _, message := range deliver {
 		if message != "" {
-			log.Println(message)
+			s.ChatMutex.Lock()
+			log.Print(message)
+			s.ChatMutex.Unlock()
 		}
 
 	}
-	return deliver
-
-
-	//able to deliever message immediately
-	}
+}
 
 
 func (s *Server) mergeVectorTimestamp(newTimestamp map[string] int) {
@@ -213,12 +225,12 @@ func (s *Server) mergeVectorTimestamp(newTimestamp map[string] int) {
 }
 
 func (s *Server) updateVectorTimestamp() {
-	s.VectorTimestamp[s.MyAddress] += 1
+	s.VectorTimestamp[s.Name] += 1
 }
 
 func (s *Server) unicast(target net.Conn, actionType string, metaData string) {
 	//s.updateVectorTimestamp()
-	action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.name, Metadata:metaData, VectorTimestamp:s.VectorTimestamp}
+	action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.Name, Metadata:metaData, VectorTimestamp:s.VectorTimestamp}
 	_, err := target.Write(action.ToBytes())
 	utils.CheckError(err)
 }
@@ -229,7 +241,7 @@ func (s *Server) bMuticast(actionType string, metaData string) {
 		os.Exit(1)
 	}
 	for _, conn := range s.EstablishedConns {
-		action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.name, Metadata:metaData, VectorTimestamp: s.VectorTimestamp}
+		action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.Name, Metadata:metaData, VectorTimestamp: s.VectorTimestamp}
 		_, err := conn.Write(action.ToBytes())
 		utils.CheckError(err)
 	}
