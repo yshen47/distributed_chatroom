@@ -192,7 +192,6 @@ func (s * Server)handleMessage(message Message) {
 		if s.isDeliverable(s.messageQueue[i]){
 			s.VectorTimestamp[s.messageQueue[i].Sender] += 1
 			realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content)
-			fmt.Println(realContent)
 			deliver = append(deliver,realContent)
 
 		}else{
