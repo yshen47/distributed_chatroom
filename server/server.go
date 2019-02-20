@@ -199,13 +199,15 @@ func (s * Server)handleMessage(message Message) {
 		}
 	}
 	s.messageQueue = newQueue
+	fmt.Println(len(deliver))
+	fmt.Println(len(s.messageQueue))
 	for _, message := range deliver {
 		if message != "" {
+
 			s.ChatMutex.Lock()
 			log.Print(message)
 			s.ChatMutex.Unlock()
 		}
-
 	}
 }
 
