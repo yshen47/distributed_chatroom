@@ -45,17 +45,11 @@ func GetServerIPs(port int, num int, debug bool) [] string {
 		for i := range ips {
 			ips[i] = Concatenate("127.0.0.1:", 5800 + i * 100)
 		}
+		return ips
 	} else {
-		for i := range ips {
-			if i == 9 {
-				ips[9] = Concatenate("sp19-cs425-g18-10.cs.illinois.edu:", port)
-			} else {
-				ips[i] = Concatenate("sp19-cs425-g18-0", i+1, ".cs.illinois.edu:", port)
-			}
-
-		}
+		ips := [] string {"172.22.94.67", "172.22.156.59", "172.22.158.59" ,"172.22.94.68", "172.22.156.60", "172.22.158.60", "172.22.94.69", "172.22.156.61", "172.22.158.61", "172.22.94.70"}
+		return ips
 	}
-	return ips
 }
 
 func GetCurrentIP(debug bool, port int) string {
