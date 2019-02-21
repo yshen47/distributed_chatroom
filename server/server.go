@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"cs425_mp1/utils"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -82,7 +81,9 @@ func (s *Server) DialOthers() {
 			}
 			//fmt.Println("trying to dial ", ip)
 			conn, err := net.DialTimeout("tcp", ip, 1*time.Second)
+			//fmt.Println("dial error? ",err)
 			if err == nil {
+				//fmt.Println("suceess ip: ",ip)
 				go s.HandleConnection(conn)
 			}
 		}
@@ -94,9 +95,10 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	var remoteName string
 	var remoteAddr string
 	s.unicast(conn, "Introduce", "")
-	buf := make([]byte, 1024)
+	buf := make([]byte, 512)
 	for {
 		n, err := conn.Read(buf)
+		//fmt.Println("read error = ",err)
 		if err == io.EOF {
 			//Failure detected
 			//log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
@@ -120,10 +122,10 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		var resultMap Action
 		// parse resultMap to json format
 		err = json.Unmarshal(buf[0:n], &resultMap)
-		if err != nil {
-			fmt.Println("error:", err)
-
-		}
+		//if err != nil {
+		//	fmt.Println("json error:", err)
+		//
+		//}
 		if resultMap.ActionType == EncodeActionType("Introduce") {
 			s.ConnMutex.Lock()
 			_, ok := s.EstablishedConns[resultMap.SenderIP];
@@ -142,6 +144,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			}
 		} else if resultMap.ActionType == EncodeActionType("Message") {
 			newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
+			//add multicast here?
 			if !s.isMessageReceived(newMessage) {
 				s.handleMessage(newMessage)
 			}
@@ -215,7 +218,6 @@ func (s * Server)handleMessage(message Message) {
 	}
 	s.messageQueue = newQueue
 	//fmt.Println(len(deliver))
-	//fmt.Println(len(s.messageQueue))
 	for _, message := range deliver {
 		if message != "" {
 
