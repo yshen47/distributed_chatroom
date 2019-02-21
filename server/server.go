@@ -122,10 +122,10 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		var resultMap Action
 		// parse resultMap to json format
 		err = json.Unmarshal(buf[0:n], &resultMap)
-		//if err != nil {
-		//	fmt.Println("json error:", err)
-		//
-		//}
+		if err != nil {
+			fmt.Println("json error:", err)
+		
+		}
 		if resultMap.ActionType == EncodeActionType("Introduce") {
 			s.ConnMutex.Lock()
 			_, ok := s.EstablishedConns[resultMap.SenderIP];
