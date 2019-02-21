@@ -144,6 +144,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
 			if !s.isMessageReceived(newMessage) {
 				s.handleMessage(newMessage)
+				s.bMuticast("Message", resultMap.Metadata)
 			}
 
 		} else if resultMap.ActionType == EncodeActionType("Leave") {
