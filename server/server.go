@@ -147,6 +147,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			//add multicast here?
 			if !s.isMessageReceived(newMessage) {
 				s.handleMessage(newMessage)
+				s.bMulticast("Message",resultMap.Metadata)
 			}
 
 		} else if resultMap.ActionType == EncodeActionType("Leave") {
