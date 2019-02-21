@@ -95,7 +95,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	var remoteName string
 	var remoteAddr string
 	s.unicast(conn, "Introduce", "")
-	buf := make([]byte, 512)
+	buf := make([]byte, 1024)
 	for {
 		n, err := conn.Read(buf)
 		//fmt.Println("read error = ",err)
