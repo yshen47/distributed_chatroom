@@ -95,7 +95,9 @@ func (s *Server) DialOthers() {
 			}
 			//fmt.Println("trying to dial ", ip)
 			conn, err := net.DialTimeout("tcp", ip, 1*time.Second)
+			//fmt.Println("dial error? ",err)
 			if err == nil {
+				//fmt.Println("suceess ip: ",ip)
 				go s.HandleConnection(conn)
 			}
 		}
@@ -110,6 +112,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	for {
 		buf := make([]byte, 16*1024)
 		n, err := conn.Read(buf)
+		//fmt.Println("read error = ",err)
 		if err == io.EOF {
 			//Failure detected
 			//log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
@@ -153,6 +156,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			}
 		} else if resultMap.ActionType == EncodeActionType("Message") {
 			newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
+			//add multicast here?
 			if !s.isMessageReceived(newMessage) {
 				s.handleMessage(newMessage)
 				s.bMuticast("Message", resultMap.Metadata)
