@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -88,7 +89,8 @@ func IsPortValid(port int, num int) bool {
 
 func CheckError(err error) {
 	if err != nil {
-		log.Println("Fatal error ", err.Error())
+		_, fn, line, _ := runtime.Caller(1)
+		log.Printf("[error] %s:%d %v", fn, line, err)
 		os.Exit(1)
 	}
 }

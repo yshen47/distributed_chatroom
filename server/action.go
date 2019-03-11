@@ -17,7 +17,7 @@ func (a *Action)  ToBytes() []byte {
 
 func EncodeActionType(actionType string) int {
 	if actionType == "Message" {
-		return 0
+		return 3
 	} else if actionType == "Leave" {
 		return 1
 	} else if actionType == "Introduce" {

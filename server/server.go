@@ -25,6 +25,7 @@ type Server struct {
 	ChatMutex         *sync.Mutex
 	VectorTimestamp   map[string] int
 	messageQueue      [] Message
+	messageQueueMutex sync.Mutex
 
 }
 
@@ -60,9 +61,10 @@ func (s *Server) DialOthers() {
 					log.Print(": ")
 					s.ChatMutex.Unlock()
 					text, _ := reader.ReadString('\n')
+					text = strings.TrimSuffix(text, "\n")
 					// bMulticast
 					s.updateVectorTimestamp()
-					s.bMuticast("Message", text)
+					s.bMuticast("Message", utils.Concatenate(s.Name, " ", text))
 				}
 
 			}
@@ -94,8 +96,8 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	var remoteName string
 	var remoteAddr string
 	s.unicast(conn, "Introduce", "")
-	buf := make([]byte, 1024)
 	for {
+		buf := make([]byte, 16*1024)
 		n, err := conn.Read(buf)
 		if err == io.EOF {
 			//Failure detected
@@ -119,11 +121,9 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		//received something
 		var resultMap Action
 		// parse resultMap to json format
+		fmt.Println("Received new resultMap, START", string(buf[0:n]), "END")
 		err = json.Unmarshal(buf[0:n], &resultMap)
-		if err != nil {
-			fmt.Println("error:", err)
-
-		}
+		utils.CheckError(err)
 		if resultMap.ActionType == EncodeActionType("Introduce") {
 			s.ConnMutex.Lock()
 			_, ok := s.EstablishedConns[resultMap.SenderIP];
@@ -187,20 +187,28 @@ func (s* Server) isDeliverable(message Message)bool{
 }
 
 func (s *Server) isMessageReceived(message Message) bool {
+	origSenderName := strings.Split(message.Content, " ")[0]
+	s.messageQueueMutex.Lock()
 	for _, old := range s.messageQueue {
-		for k, v := range old.Timestamp {
-			if message.Timestamp[k] != v {
-				return false
+		_, ok := old.Timestamp[origSenderName]
+		if ok {
+			if message.Timestamp[origSenderName] == old.Timestamp[origSenderName] {
+				return true
 			}
 		}
-		if old.Sender == message.Sender {
-			return true
-		}
 	}
+
+	if message.Timestamp[origSenderName] <= s.VectorTimestamp[origSenderName] {
+		return true
+	}
+
+
+	s.messageQueueMutex.Unlock()
 	return false
 }
 
 func (s * Server)handleMessage(message Message) {
+	s.messageQueueMutex.Lock()
 	s.messageQueue = append(s.messageQueue, message)
 	deliver := make([]string,0)
 	newQueue := make([]Message,0)
@@ -215,8 +223,7 @@ func (s * Server)handleMessage(message Message) {
 		}
 	}
 	s.messageQueue = newQueue
-	//fmt.Println(len(deliver))
-	//fmt.Println(len(s.messageQueue))
+	s.messageQueueMutex.Unlock()
 	for _, message := range deliver {
 		if message != "" {
 
@@ -257,11 +264,15 @@ func (s *Server) bMuticast(actionType string, metaData string) {
 		log.Println("Fatal error :actionType doesn't exist.")
 		os.Exit(1)
 	}
+
 	for k, conn := range s.EstablishedConns {
 		if k == s.MyAddress {
 			continue
 		}
 		action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.Name, Metadata:metaData, VectorTimestamp: s.VectorTimestamp}
+		if actionType == "Message" {
+			fmt.Println("SENT ACTION TO: ", k, " ,WITH ", action, "END")
+		}
 		_, err := conn.Write(action.ToBytes())
 		utils.CheckError(err)
 	}

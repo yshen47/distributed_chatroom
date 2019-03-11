@@ -10,12 +10,12 @@ import (
 	"strconv"
 )
 
-var DEBUG = false
+var DEBUG = true
 
 
 func main() {
 	if len(os.Args) != 4 {
-		fmt.Print("Usage: go run main.go [server name] [port] n. \n")
+		fmt.Print("Usage: go run main.go [server name] [port] [peopleNum]. \n")
 		return
 	}
 	//Parse input argument
