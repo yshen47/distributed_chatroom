@@ -65,8 +65,17 @@ func (s *Server) DialOthers() {
 						continue
 					}
 					// bMulticast
-					s.updateVectorTimestamp()
-					s.bMuticast("Message", utils.Concatenate(s.Name, " ", text))
+					//s.updateVectorTimestamp()
+					content := utils.Concatenate(s.Name, " ", text)
+					messageTimestamp := make(map[string]int)
+
+					for k, v := range s.VectorTimestamp {
+						messageTimestamp[k] = v
+					}
+					newMessage := Message{Content:content, Sender:s.Name, Timestamp:messageTimestamp}
+					newMessage.Timestamp[s.Name] += 1
+					s.handleMessage(newMessage)
+					s.bMuticast("Message", content)
 				}
 
 			}
@@ -230,7 +239,6 @@ func (s * Server)handleMessage(message Message) {
 	s.messageQueueMutex.Unlock()
 	for _, message := range deliver {
 		if message != "" {
-
 			s.ChatMutex.Lock()
 			log.Println(message)
 			s.ChatMutex.Unlock()
