@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"cs425_mp1/utils"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -62,6 +61,9 @@ func (s *Server) DialOthers() {
 					s.ChatMutex.Unlock()
 					text, _ := reader.ReadString('\n')
 					text = strings.TrimSuffix(text, "\n")
+					if len(text) == 0 {
+						continue
+					}
 					// bMulticast
 					s.updateVectorTimestamp()
 					s.bMuticast("Message", utils.Concatenate(s.Name, " ", text))
@@ -121,7 +123,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		//received something
 		var resultMap Action
 		// parse resultMap to json format
-		fmt.Println("Received new resultMap, START", string(buf[0:n]), "END")
+		//fmt.Println("Received new resultMap, START", string(buf[0:n]), "END")
 		err = json.Unmarshal(buf[0:n], &resultMap)
 		utils.CheckError(err)
 		if resultMap.ActionType == EncodeActionType("Introduce") {
@@ -189,6 +191,7 @@ func (s* Server) isDeliverable(message Message)bool{
 func (s *Server) isMessageReceived(message Message) bool {
 	origSenderName := strings.Split(message.Content, " ")[0]
 	s.messageQueueMutex.Lock()
+	defer s.messageQueueMutex.Unlock()
 	for _, old := range s.messageQueue {
 		_, ok := old.Timestamp[origSenderName]
 		if ok {
@@ -203,7 +206,7 @@ func (s *Server) isMessageReceived(message Message) bool {
 	}
 
 
-	s.messageQueueMutex.Unlock()
+
 	return false
 }
 
@@ -215,7 +218,8 @@ func (s * Server)handleMessage(message Message) {
 	for i:=0;i<len(s.messageQueue);i++{
 		if s.isDeliverable(s.messageQueue[i]) {
 			s.VectorTimestamp[s.messageQueue[i].Sender] += 1
-			realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content)
+			j := strings.Index(s.messageQueue[i].Content, " ")
+			realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content[j+1:])
 			deliver = append(deliver,realContent)
 
 		}else{
@@ -228,7 +232,7 @@ func (s * Server)handleMessage(message Message) {
 		if message != "" {
 
 			s.ChatMutex.Lock()
-			log.Print(message)
+			log.Println(message)
 			s.ChatMutex.Unlock()
 		}
 	}
@@ -270,9 +274,6 @@ func (s *Server) bMuticast(actionType string, metaData string) {
 			continue
 		}
 		action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.Name, Metadata:metaData, VectorTimestamp: s.VectorTimestamp}
-		if actionType == "Message" {
-			fmt.Println("SENT ACTION TO: ", k, " ,WITH ", action, "END")
-		}
 		_, err := conn.Write(action.ToBytes())
 		utils.CheckError(err)
 	}
