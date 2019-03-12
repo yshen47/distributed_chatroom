@@ -24,6 +24,7 @@ type Server struct {
 	ConnMutex         *sync.Mutex
 	ChatMutex         *sync.Mutex
 	VectorTimestamp   map[string] int
+	VectorTimestampMutex sync.Mutex
 	messageQueue      [] Message
 	messageQueueMutex sync.Mutex
 
@@ -69,10 +70,11 @@ func (s *Server) DialOthers() {
 					//s.updateVectorTimestamp()
 					content := utils.Concatenate(s.Name, " ", text)
 					messageTimestamp := make(map[string]int)
-
+					s.VectorTimestampMutex.Lock()
 					for k, v := range s.VectorTimestamp {
 						messageTimestamp[k] = v
 					}
+					s.VectorTimestampMutex.Unlock()
 					newMessage := Message{Content:content, Sender:s.Name, Timestamp:messageTimestamp}
 					newMessage.Timestamp[s.Name] += 1
 					s.handleMessage(newMessage)
@@ -174,7 +176,9 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 			return
 		}
 	} else if resultMap.ActionType == EncodeActionType("Message") {
+		s.VectorTimestampMutex.Lock()
 		newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
+		s.VectorTimestampMutex.Unlock()
 		//add multicast here?
 		log.Println("178")
 		if !s.isMessageReceived(newMessage) {
@@ -209,6 +213,9 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 
 func (s* Server) isDeliverable(message Message)bool{
 	fmt.Println("isDeliverable?")
+
+	s.VectorTimestampMutex.Lock()
+	defer s.VectorTimestampMutex.Unlock()
 	for k,_ := range message.Timestamp {
 		if k == message.Sender {
 			if message.Timestamp[k] != s.VectorTimestamp[k] + 1 {
@@ -253,7 +260,9 @@ func (s * Server)handleMessage(message Message) {
 	newQueue := make([]Message,0)
 	for i:=0;i<len(s.messageQueue);i++{
 		if s.isDeliverable(s.messageQueue[i]) {
+			s.VectorTimestampMutex.Lock()
 			s.VectorTimestamp[s.messageQueue[i].Sender] += 1
+			s.VectorTimestampMutex.Unlock()
 			j := strings.Index(s.messageQueue[i].Content, " ")
 			realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content[j+1:])
 			deliver = append(deliver,realContent)
@@ -275,6 +284,7 @@ func (s * Server)handleMessage(message Message) {
 
 
 func (s *Server) mergeVectorTimestamp(newTimestamp map[string] int) {
+	s.VectorTimestampMutex.Lock()
 	for k, newVal := range newTimestamp {
 		oldVal, ok := s.VectorTimestamp[k]
 		if ok {
@@ -285,15 +295,20 @@ func (s *Server) mergeVectorTimestamp(newTimestamp map[string] int) {
 			s.VectorTimestamp[k] = newVal
 		}
 	}
+	s.VectorTimestampMutex.Unlock()
 }
 
 func (s *Server) updateVectorTimestamp() {
+	s.VectorTimestampMutex.Lock()
 	s.VectorTimestamp[s.Name] += 1
+	s.VectorTimestampMutex.Unlock()
 }
 
 func (s *Server) unicast(target net.Conn, actionType string, metaData string) {
 	//s.updateVectorTimestamp()
+	s.VectorTimestampMutex.Lock()
 	action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.Name, Metadata:metaData, VectorTimestamp:s.VectorTimestamp}
+	s.VectorTimestampMutex.Unlock()
 	_, err := target.Write(action.ToBytes())
 	utils.CheckError(err)
 }
@@ -308,7 +323,9 @@ func (s *Server) bMuticast(actionType string, metaData string) {
 		if k == s.MyAddress {
 			continue
 		}
+		s.VectorTimestampMutex.Lock()
 		action := Action{ActionType:EncodeActionType(actionType), SenderIP: s.MyAddress, SenderName:s.Name, Metadata:metaData, VectorTimestamp: s.VectorTimestamp}
+		s.VectorTimestampMutex.Unlock()
 		_, err := conn.Write(action.ToBytes())
 		utils.CheckError(err)
 	}
