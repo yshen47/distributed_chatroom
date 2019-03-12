@@ -272,10 +272,12 @@ func (s * Server)handleMessage(message Message) {
 		for i:=0;i<len(s.messageQueue);i++{
 			if s.isDeliverable(s.messageQueue[i]) {
 				s.VectorTimestampMutex.Lock()
-				s.VectorTimestamp[s.messageQueue[i].Sender] += 1
-				s.VectorTimestampMutex.Unlock()
 				j := strings.Index(s.messageQueue[i].Content, " ")
 				origSender := s.messageQueue[i].Content[:j]
+
+				s.VectorTimestamp[origSender] += 1
+				s.VectorTimestampMutex.Unlock()
+
 				realContent := utils.Concatenate(origSender, ": ", s.messageQueue[i].Content[j+1:])
 				deliver = append(deliver,realContent)
 				stop = false
