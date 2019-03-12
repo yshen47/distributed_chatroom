@@ -193,7 +193,7 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 		newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
 		s.VectorTimestampMutex.Unlock()
 		//add multicast here?
-		log.Println("178")
+		//log.Println("178")
 		if !s.isMessageReceived(newMessage) {
 			s.handleMessage(newMessage)
 			//s.updateVectorTimestamp()
@@ -244,7 +244,7 @@ func (s* Server) isDeliverable(message Message)bool{
 			}
 		}
 	}
-	fmt.Println("true")
+	//fmt.Println("true")
 	return true
 }
 
