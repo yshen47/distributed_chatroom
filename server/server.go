@@ -152,6 +152,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 func (s* Server) processIncomingMessage(rawString string, remoteAddr string, remoteName string, conn net.Conn) {
 	//received something
+	fmt.Println("processingIncoming Message")
 	var resultMap Action
 	// parse resultMap to json format
 	err := json.Unmarshal([]byte(rawString), &resultMap)
@@ -175,9 +176,12 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 	} else if resultMap.ActionType == EncodeActionType("Message") {
 		newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
 		//add multicast here?
+		log.Println("178")
 		if !s.isMessageReceived(newMessage) {
 			s.handleMessage(newMessage)
+			fmt.Println("180")
 			s.bMuticast("Message", resultMap.Metadata)
+			fmt.Println("182")
 		}
 
 	} else if resultMap.ActionType == EncodeActionType("Leave") {
@@ -234,8 +238,6 @@ func (s *Server) isMessageReceived(message Message) bool {
 	if message.Timestamp[origSenderName] <= s.VectorTimestamp[origSenderName] {
 		return true
 	}
-
-
 
 	return false
 }
