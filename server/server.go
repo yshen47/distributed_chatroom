@@ -257,21 +257,32 @@ func (s * Server)handleMessage(message Message) {
 	s.messageQueueMutex.Lock()
 	s.messageQueue = append(s.messageQueue, message)
 	deliver := make([]string,0)
-	newQueue := make([]Message,0)
-	for i:=0;i<len(s.messageQueue);i++{
-		if s.isDeliverable(s.messageQueue[i]) {
-			s.VectorTimestampMutex.Lock()
-			s.VectorTimestamp[s.messageQueue[i].Sender] += 1
-			s.VectorTimestampMutex.Unlock()
-			j := strings.Index(s.messageQueue[i].Content, " ")
-			realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content[j+1:])
-			deliver = append(deliver,realContent)
 
-		}else{
-			newQueue = append(newQueue,s.messageQueue[i])
+
+	for {
+		newQueue := make([]Message,0)
+		stop := true
+
+		for i:=0;i<len(s.messageQueue);i++{
+			if s.isDeliverable(s.messageQueue[i]) {
+				s.VectorTimestampMutex.Lock()
+				s.VectorTimestamp[s.messageQueue[i].Sender] += 1
+				s.VectorTimestampMutex.Unlock()
+				j := strings.Index(s.messageQueue[i].Content, " ")
+				realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content[j+1:])
+				deliver = append(deliver,realContent)
+				stop = false
+			}else{
+				newQueue = append(newQueue,s.messageQueue[i])
+			}
+		}
+		s.messageQueue = newQueue
+		if stop {
+			break
 		}
 	}
-	s.messageQueue = newQueue
+
+
 	s.messageQueueMutex.Unlock()
 	for _, message := range deliver {
 		if message != "" {
