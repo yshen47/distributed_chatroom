@@ -134,8 +134,14 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		}
 
 		//received something
-		fmt.Println("Received new resultMap, START", string(buf[:n]), "END")
+		if len(strings.Split(string(buf[0:n]), "}{")) > 1 {
+			fmt.Println("Received new resultMap, START", string(buf[:n]), "END")
+		}
+
 		for _, buff := range strings.Split(string(buf[0:n]), "}{") {
+			if len(strings.Split(string(buf[0:n]), "}{")) > 1 {
+				fmt.Println("ResultMap, START", buff, "END")
+			}
 			s.processIncomingMessage(buff, remoteAddr, remoteName, conn)
 		}
 	}
@@ -145,8 +151,6 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 	//received something
 	var resultMap Action
 	// parse resultMap to json format
-	fmt.Println("ResultMap, START", rawString, "END")
-
 	err := json.Unmarshal([]byte(rawString), &resultMap)
 	utils.CheckError(err)
 	if resultMap.ActionType == EncodeActionType("Introduce") {
