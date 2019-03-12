@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"cs425_mp1/utils"
 	"encoding/json"
 	"fmt"
@@ -56,14 +57,12 @@ func (s *Server) DialOthers() {
 
 
 				for {
-					//reader := bufio.NewReader(os.Stdin)
+					reader := bufio.NewReader(os.Stdin)
 					s.ChatMutex.Lock()
 					log.Print(": ")
 					s.ChatMutex.Unlock()
-					//text, _ := reader.ReadString('\n')
-					//text = strings.TrimSuffix(text, "\n")
-					text := "hello"
-					time.Sleep(10 * time.Microsecond)
+					text, _ := reader.ReadString('\n')
+					text = strings.TrimSuffix(text, "\n")
 					if len(text) == 0 {
 						continue
 					}
