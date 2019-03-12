@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"cs425_mp1/utils"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -135,7 +136,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		//received something
 		var resultMap Action
 		// parse resultMap to json format
-		//fmt.Println("Received new resultMap, START", string(buf[0:n]), "END")
+		fmt.Println("Received new resultMap, START", string(buf[0:n]), "END")
 		err = json.Unmarshal(buf[0:n], &resultMap)
 		utils.CheckError(err)
 		if resultMap.ActionType == EncodeActionType("Introduce") {
