@@ -167,7 +167,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 func (s* Server) processIncomingMessage(rawString string, remoteAddr string, remoteName string, conn net.Conn) {
 	//received something
-	fmt.Println("processingIncoming Message")
+	//fmt.Println("processingIncoming Message")
 	var resultMap Action
 	// parse resultMap to json format
 	err := json.Unmarshal([]byte(rawString), &resultMap)
@@ -224,7 +224,7 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 }
 
 func (s* Server) isDeliverable(message Message)bool{
-	fmt.Println("isDeliverable? with current timestamp", s.VectorTimestamp)
+	//fmt.Println("isDeliverable? with current timestamp", s.VectorTimestamp)
 
 
 	s.VectorTimestampMutex.Lock()
@@ -234,12 +234,12 @@ func (s* Server) isDeliverable(message Message)bool{
 		origSender := message.Content[:j]
 		if k == origSender {
 			if message.Timestamp[k] != s.VectorTimestamp[k] + 1 {
-				fmt.Println("false1")
+				//fmt.Println("false1")
 				return false
 			}
 		}else{
 			if message.Timestamp[k] > s.VectorTimestamp[k] {
-				fmt.Println("false2")
+				//fmt.Println("false2")
 				return false
 			}
 		}
@@ -272,11 +272,11 @@ func (s * Server)handleMessage(message Message) {
 	s.messageQueueMutex.Lock()
 	s.messageQueue = append(s.messageQueue, message)
 	deliver := make([]string,0)
-	fmt.Println("-----------------------------------------")
-	fmt.Println("I am ", s.Name)
-	fmt.Println("my timestamp: ", s.VectorTimestamp)
-	fmt.Println("message timestamp: ", message.Timestamp)
-	fmt.Println("messageQueue timestamp:", s.messageQueue)
+	//fmt.Println("-----------------------------------------")
+	//fmt.Println("I am ", s.Name)
+	//fmt.Println("my timestamp: ", s.VectorTimestamp)
+	//fmt.Println("message timestamp: ", message.Timestamp)
+	//fmt.Println("messageQueue timestamp:", s.messageQueue)
 
 	for {
 		newQueue := make([]Message,0)
@@ -303,10 +303,10 @@ func (s * Server)handleMessage(message Message) {
 			break
 		}
 	}
-	fmt.Println("my updated timestamp: ", s.VectorTimestamp)
-	fmt.Println("deliver queue: ", deliver)
+	//fmt.Println("my updated timestamp: ", s.VectorTimestamp)
+	//fmt.Println("deliver queue: ", deliver)
 
-	fmt.Println("====================================")
+	//fmt.Println("====================================")
 	s.messageQueueMutex.Unlock()
 	for _, message := range deliver {
 		if message != "" {
