@@ -212,8 +212,7 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 
 func (s* Server) isDeliverable(message Message)bool{
 	fmt.Println("isDeliverable? with current timestamp", s.VectorTimestamp)
-	fmt.Println("message timestamp: ", message.Timestamp)
-	fmt.Println("messageQueue timestamp:", s.messageQueue)
+
 
 	s.VectorTimestampMutex.Lock()
 	defer s.VectorTimestampMutex.Unlock()
@@ -258,7 +257,10 @@ func (s * Server)handleMessage(message Message) {
 	s.messageQueueMutex.Lock()
 	s.messageQueue = append(s.messageQueue, message)
 	deliver := make([]string,0)
-
+	fmt.Println("-----------------------------------------")
+	fmt.Println("my timestamp: ", s.VectorTimestamp)
+	fmt.Println("message timestamp: ", message.Timestamp)
+	fmt.Println("messageQueue timestamp:", s.messageQueue)
 
 	for {
 		newQueue := make([]Message,0)
@@ -282,8 +284,10 @@ func (s * Server)handleMessage(message Message) {
 			break
 		}
 	}
+	fmt.Println("my updated timestamp: ", s.VectorTimestamp)
+	fmt.Println("deliver queue: ", deliver)
 
-
+	fmt.Println("====================================")
 	s.messageQueueMutex.Unlock()
 	for _, message := range deliver {
 		if message != "" {
