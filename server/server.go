@@ -134,6 +134,9 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		}
 
 		//received something
+		if n == 0 {
+			continue
+		}
 		if len(strings.Split(string(buf[0:n]), "}{")) > 1 {
 			fmt.Println("Received new resultMap, START", string(buf[:n]), "END")
 		}
