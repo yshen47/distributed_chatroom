@@ -143,11 +143,24 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			fmt.Println("Received new resultMap, START", string(buf[:n]), "END")
 		}
 
-		for _, buff := range strings.Split(string(buf[0:n]), "}{") {
-			if len(strings.Split(string(buf[0:n]), "}{")) > 1 {
-				fmt.Println("ResultMap, START", buff, "END")
+		splitedArr := strings.Split(string(buf[0:n]), "}{")
+
+		if len(splitedArr) == 1 {
+			s.processIncomingMessage(utils.Concatenate(buff, "}"), remoteAddr, remoteName, conn)
+		} else {
+			for i, buff := range splitedArr {
+				var currBuff string
+
+				if i == 0 {
+					currBuff = utils.Concatenate(buff, "}")
+				} else if i == len(splitedArr) - 1 {
+					currBuff = utils.Concatenate("{", buff)
+				} else {
+					currBuff = utils.Concatenate("{", buff, "}")
+				}
+				fmt.Println("ResultMap, START", currBuff, "END")
+				s.processIncomingMessage(currBuff, remoteAddr, remoteName, conn)
 			}
-			s.processIncomingMessage(buff, remoteAddr, remoteName, conn)
 		}
 	}
 }
