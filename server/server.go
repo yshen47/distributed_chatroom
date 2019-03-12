@@ -61,8 +61,10 @@ func (s *Server) DialOthers() {
 					s.ChatMutex.Lock()
 					log.Print(": ")
 					s.ChatMutex.Unlock()
-					text, _ := reader.ReadString('\n')
-					text = strings.TrimSuffix(text, "\n")
+					//text, _ := reader.ReadString('\n')
+					//text = strings.TrimSuffix(text, "\n")
+					text := "hello"
+					time.Sleep(10 * time.Microsecond)
 					if len(text) == 0 {
 						continue
 					}
