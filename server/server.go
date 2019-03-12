@@ -134,55 +134,64 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		}
 
 		//received something
-		var resultMap Action
-		// parse resultMap to json format
-		fmt.Println("Received new resultMap, START", string(buf[0:n]), "END")
-		err = json.Unmarshal(buf[0:n], &resultMap)
-		utils.CheckError(err)
-		if resultMap.ActionType == EncodeActionType("Introduce") {
+		fmt.Println("Received new resultMap, START", string(buf[:n]), "END")
+		for _, buff := range strings.Split(string(buf[0:n]), "}{") {
+			s.processIncomingMessage(buff, remoteAddr, remoteName, conn)
+		}
+	}
+}
+
+func (s* Server) processIncomingMessage(rawString string, remoteAddr string, remoteName string, conn net.Conn) {
+	//received something
+	var resultMap Action
+	// parse resultMap to json format
+	fmt.Println("ResultMap, START", rawString, "END")
+
+	err := json.Unmarshal([]byte(rawString), &resultMap)
+	utils.CheckError(err)
+	if resultMap.ActionType == EncodeActionType("Introduce") {
+		s.ConnMutex.Lock()
+		_, ok := s.EstablishedConns[resultMap.SenderIP];
+		s.ConnMutex.Unlock()
+		if !ok {
 			s.ConnMutex.Lock()
-			_, ok := s.EstablishedConns[resultMap.SenderIP];
+			s.EstablishedConns[resultMap.SenderIP] = conn
+			remoteAddr = resultMap.SenderIP
+			remoteName = resultMap.SenderName
+			log.Println("Established new connection ", resultMap.SenderName, resultMap.SenderIP, " <=> ", s.MyAddress)
 			s.ConnMutex.Unlock()
-			if !ok {
-				s.ConnMutex.Lock()
-				s.EstablishedConns[resultMap.SenderIP] = conn
-				remoteAddr = resultMap.SenderIP
-				remoteName = resultMap.SenderName
-				log.Println("Established new connection ", resultMap.SenderName, resultMap.SenderIP, " <=> ", s.MyAddress)
-				s.ConnMutex.Unlock()
-			} else {
-				err = conn.Close()
-				utils.CheckError(err)
-				return
-			}
-		} else if resultMap.ActionType == EncodeActionType("Message") {
-			newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
-			//add multicast here?
-			if !s.isMessageReceived(newMessage) {
-				s.handleMessage(newMessage)
-				s.bMuticast("Message", resultMap.Metadata)
-			}
+		} else {
+			err = conn.Close()
+			utils.CheckError(err)
+			return
+		}
+	} else if resultMap.ActionType == EncodeActionType("Message") {
+		newMessage := Message{Sender: resultMap.SenderName, Content:resultMap.Metadata, Timestamp:resultMap.VectorTimestamp}
+		//add multicast here?
+		if !s.isMessageReceived(newMessage) {
+			s.handleMessage(newMessage)
+			s.bMuticast("Message", resultMap.Metadata)
+		}
 
-		} else if resultMap.ActionType == EncodeActionType("Leave") {
-			deleteRemoteAddr := strings.Split(resultMap.Metadata, ";")[1]
-			deleteRemoteName := strings.Split(resultMap.Metadata,";")[0]
+	} else if resultMap.ActionType == EncodeActionType("Leave") {
+		deleteRemoteAddr := strings.Split(resultMap.Metadata, ";")[1]
+		deleteRemoteName := strings.Split(resultMap.Metadata,";")[0]
 
-			s.ChatMutex.Lock()
-			_, ok := s.EstablishedConns[deleteRemoteName]
-			if ok {
-				log.Println(remoteName, " left!")
-			}
-			s.ChatMutex.Unlock()
+		s.ChatMutex.Lock()
+		_, ok := s.EstablishedConns[deleteRemoteName]
+		if ok {
+			log.Println(remoteName, " left!")
+		}
+		s.ChatMutex.Unlock()
 
-			s.ConnMutex.Lock()
-			_, ok = s.EstablishedConns[deleteRemoteAddr]
-			if ok {
-				delete(s.EstablishedConns, deleteRemoteAddr)
-				s.ConnMutex.Unlock()
-				s.bMuticast("Leave", resultMap.Metadata)
-			} else {
-				s.ConnMutex.Unlock()
-			}
+		s.ConnMutex.Lock()
+		_, ok = s.EstablishedConns[deleteRemoteAddr]
+		if ok {
+			delete(s.EstablishedConns, deleteRemoteAddr)
+			s.ConnMutex.Unlock()
+			s.bMuticast("Leave", resultMap.Metadata)
+		} else {
+			s.ConnMutex.Unlock()
 		}
 	}
 }
