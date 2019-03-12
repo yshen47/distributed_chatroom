@@ -258,6 +258,7 @@ func (s * Server)handleMessage(message Message) {
 	s.messageQueue = append(s.messageQueue, message)
 	deliver := make([]string,0)
 	fmt.Println("-----------------------------------------")
+	fmt.Println("I am ", s.Name)
 	fmt.Println("my timestamp: ", s.VectorTimestamp)
 	fmt.Println("message timestamp: ", message.Timestamp)
 	fmt.Println("messageQueue timestamp:", s.messageQueue)
