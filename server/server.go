@@ -183,6 +183,7 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 		log.Println("178")
 		if !s.isMessageReceived(newMessage) {
 			s.handleMessage(newMessage)
+			s.updateVectorTimestamp()
 			s.bMuticast("Message", resultMap.Metadata)
 		}
 
