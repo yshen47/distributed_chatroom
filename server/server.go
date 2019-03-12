@@ -208,17 +208,21 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 }
 
 func (s* Server) isDeliverable(message Message)bool{
+	fmt.Println("isDeliverable?")
 	for k,_ := range message.Timestamp {
 		if k == message.Sender {
 			if message.Timestamp[k] != s.VectorTimestamp[k] + 1 {
+				fmt.Println("false1")
 				return false
 			}
 		}else{
 			if message.Timestamp[k] > s.VectorTimestamp[k] {
+				fmt.Println("false2")
 				return false
 			}
 		}
 	}
+	fmt.Println("true")
 	return true
 }
 
