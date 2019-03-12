@@ -146,7 +146,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		splitedArr := strings.Split(string(buf[0:n]), "}{")
 
 		if len(splitedArr) == 1 {
-			s.processIncomingMessage(utils.Concatenate(buff, "}"), remoteAddr, remoteName, conn)
+			s.processIncomingMessage(splitedArr[0], remoteAddr, remoteName, conn)
 		} else {
 			for i, buff := range splitedArr {
 				var currBuff string
