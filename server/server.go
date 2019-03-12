@@ -217,7 +217,9 @@ func (s* Server) isDeliverable(message Message)bool{
 	s.VectorTimestampMutex.Lock()
 	defer s.VectorTimestampMutex.Unlock()
 	for k,_ := range message.Timestamp {
-		if k == message.Sender {
+		j := strings.Index(message.Content, " ")
+		origSender := message.Content[:j]
+		if k == origSender {
 			if message.Timestamp[k] != s.VectorTimestamp[k] + 1 {
 				fmt.Println("false1")
 				return false
@@ -273,7 +275,8 @@ func (s * Server)handleMessage(message Message) {
 				s.VectorTimestamp[s.messageQueue[i].Sender] += 1
 				s.VectorTimestampMutex.Unlock()
 				j := strings.Index(s.messageQueue[i].Content, " ")
-				realContent := utils.Concatenate(s.messageQueue[i].Sender, ": ", s.messageQueue[i].Content[j+1:])
+				origSender := s.messageQueue[i].Content[:j]
+				realContent := utils.Concatenate(origSender, ": ", s.messageQueue[i].Content[j+1:])
 				deliver = append(deliver,realContent)
 				stop = false
 			}else{
