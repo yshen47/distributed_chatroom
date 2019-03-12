@@ -183,9 +183,7 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 		log.Println("178")
 		if !s.isMessageReceived(newMessage) {
 			s.handleMessage(newMessage)
-			fmt.Println("180")
 			s.bMuticast("Message", resultMap.Metadata)
-			fmt.Println("182")
 		}
 
 	} else if resultMap.ActionType == EncodeActionType("Leave") {
@@ -212,7 +210,9 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 }
 
 func (s* Server) isDeliverable(message Message)bool{
-	fmt.Println("isDeliverable?")
+	fmt.Println("isDeliverable? with current timestamp", s.VectorTimestamp)
+	fmt.Println("message timestamp: ", message.Timestamp)
+	fmt.Println("messageQueue timestamp:", s.messageQueue)
 
 	s.VectorTimestampMutex.Lock()
 	defer s.VectorTimestampMutex.Unlock()
