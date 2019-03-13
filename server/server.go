@@ -205,7 +205,6 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 		}
 
 	} else if resultMap.ActionType == EncodeActionType("Leave") {
-		fmt.Println("heree")
 		deleteRemoteAddr := strings.Split(resultMap.Metadata, ";")[1]
 		deleteRemoteName := strings.Split(resultMap.Metadata,";")[0]
 
