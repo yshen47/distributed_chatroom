@@ -118,8 +118,9 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		//fmt.Println("read error = ",err)
 		if err == io.EOF {
 			//Failure detected
-			log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
+			//log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
 			s.ChatMutex.Lock()
+			//fmt.Println("lock...")
 			_, ok := s.EstablishedConns[remoteAddr]
 			if ok {
 				log.Println(remoteName, " left!")
@@ -146,7 +147,9 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		splitedArr := strings.Split(string(buf[0:n]), "}{")
 
 		if len(splitedArr) == 1 {
-			s.processIncomingMessage(splitedArr[0], remoteAddr, remoteName, conn)
+			returnArr := s.processIncomingMessage(splitedArr[0], remoteAddr, remoteName, conn)
+			remoteName = returnArr[0]
+			remoteAddr = returnArr[1]
 		} else {
 			for i, buff := range splitedArr {
 				var currBuff string
@@ -159,13 +162,15 @@ func (s *Server) HandleConnection(conn net.Conn) {
 					currBuff = utils.Concatenate("{", buff, "}")
 				}
 				fmt.Println("ResultMap, START", currBuff, "END")
-				s.processIncomingMessage(currBuff, remoteAddr, remoteName, conn)
+				returnArr := s.processIncomingMessage(currBuff, remoteAddr, remoteName, conn)
+				remoteName = returnArr[0]
+				remoteAddr = returnArr[1]
 			}
 		}
 	}
 }
 
-func (s* Server) processIncomingMessage(rawString string, remoteAddr string, remoteName string, conn net.Conn) {
+func (s* Server) processIncomingMessage(rawString string, remoteAddr string, remoteName string, conn net.Conn) [2] string {
 	//received something
 	//fmt.Println("processingIncoming Message")
 	var resultMap Action
@@ -186,7 +191,6 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 		} else {
 			err = conn.Close()
 			utils.CheckError(err)
-			return
 		}
 	} else if resultMap.ActionType == EncodeActionType("Message") {
 		s.VectorTimestampMutex.Lock()
@@ -220,8 +224,9 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 			s.bMuticast("Leave", resultMap.Metadata)
 		} else {
 			s.ConnMutex.Unlock()
-		}
 	}
+	}
+	return [2]string {remoteName, remoteAddr}
 }
 
 func (s* Server) isDeliverable(message Message)bool{
