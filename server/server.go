@@ -118,7 +118,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		//fmt.Println("read error = ",err)
 		if err == io.EOF {
 			//Failure detected
-			//log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
+			log.Println("Failure detected from ", s.MyAddress, remoteAddr, remoteName)
 			s.ChatMutex.Lock()
 			_, ok := s.EstablishedConns[remoteAddr]
 			if ok {
@@ -201,6 +201,7 @@ func (s* Server) processIncomingMessage(rawString string, remoteAddr string, rem
 		}
 
 	} else if resultMap.ActionType == EncodeActionType("Leave") {
+		fmt.Println("heree")
 		deleteRemoteAddr := strings.Split(resultMap.Metadata, ";")[1]
 		deleteRemoteName := strings.Split(resultMap.Metadata,";")[0]
 
