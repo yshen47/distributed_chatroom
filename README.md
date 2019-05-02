@@ -1,8 +1,6 @@
 # distributed_chatroom
 
-To run this chatroom service
-
-at the root directory, run go run cmd/chat-server/main.go [server name] [port number] [total num of people in the chatroom]
+To run this chatroom service, at the root directory, run go run cmd/chat-server/main.go [server name] [port number] [total num of people in the chatroom]
 
 
 To set mode, change DEBUG variable in cmd/chat-server/main.go to be TRUE/FALSE
