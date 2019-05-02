@@ -27,7 +27,6 @@ type Server struct {
 	VectorTimestampMutex sync.Mutex
 	messageQueue      [] Message
 	messageQueueMutex sync.Mutex
-
 }
 
 func (s * Server) Constructor(name string, peopleNum int, portNum int, myAddr string, globalServerAddrs [] string) {
